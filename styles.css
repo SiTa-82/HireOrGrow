@@ -357,3 +357,29 @@
 .decision-chart-card{grid-template-rows:100px 335px minmax(76px,auto) minmax(73px,auto) 44px}
 @media(max-width:740px){.financial-heading-controls{width:100%;align-items:flex-start;justify-content:flex-start}.decision-chart-card{grid-template-rows:auto auto auto auto 44px}.decision-chart-bars{grid-template-rows:repeat(3,105px);min-height:335px}}
 @media print{.decision-chart-card{grid-template-rows:100px 335px 76px 73px}}
+
+/* v0.9.8: explicit evidence/estimate selection; never silently promote context to gross. */
+.fin-source-review{border:1px solid #cbdced;border-radius:12px;background:#f7faff;padding:13px 15px;margin-top:14px;font-size:12px;color:#365776;line-height:1.55}
+.fin-source-review p{margin:7px 0 0}
+.fin-evidence-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.fin-evidence-top strong{font-size:13px;color:#183b60}
+.fin-badge{font-size:11px;font-weight:750;border-radius:99px;padding:5px 9px;border:1px solid transparent}
+.fin-badge--verified{background:#e5f5ed;color:#126b4b;border-color:#9cdbc0}
+.fin-badge--indicative{background:#fff1d9;color:#875618;border-color:#e5c188}
+.fin-badge--context{background:#f9ece3;color:#91532a;border-color:#ebd1bf}
+.fin-badge--manual,.fin-badge--none{background:#eaf0f7;color:#3f607e;border-color:#cbd9e7}
+.fin-source-review .fin-evidence-meta{font-size:11px;color:#5b6c82;line-height:1.5;margin-top:8px}
+.fin-source-review .fin-evidence-meta a{margin-left:7px;color:#14627b}
+.fin-proposed{font-size:13px;font-weight:700;color:#1a4968}
+.fin-evidence-fx{font-size:11px;color:#5d7189}
+.fin-accept{appearance:none;border:1px solid #217b70;background:#e6f7f2;color:#09594d;border-radius:9px;font:inherit;font-size:13px;font-weight:750;cursor:pointer;padding:10px 14px;margin-top:12px}
+.fin-accept:hover{background:#d4f1e8}
+.fin-accept:focus-visible{outline:3px solid #267fcd;outline-offset:2px}
+@media print{.fin-accept{display:none!important}}
+
+/* v0.9.8 — clearly labeled manual gross override next to the selected source. */
+.fin-manual-help{margin-top:12px;padding:10px 12px;background:#eef5fd;border-left:3px solid #4e89ce;border-radius:7px;color:#315579;font-size:12px;line-height:1.5}
+.fin-edit-manual{appearance:none;border:1px solid #3b72ac;background:#f4f9ff;color:#174a84;border-radius:9px;padding:9px 12px;margin-top:10px;font-weight:700;font-size:12px;cursor:pointer}
+.fin-edit-manual:hover{background:#e3f0ff}
+.fin-edit-manual:focus-visible{outline:3px solid #267fcd;outline-offset:2px}
+@media print{.fin-edit-manual{display:none!important}}

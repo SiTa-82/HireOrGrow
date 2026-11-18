@@ -114,34 +114,140 @@ function switchFinPeriod(){
  for(const key of Object.keys(finAnnualValues))finField('fin-'+key,finAnnualValues[key]);
  applyFinancialAssumptions();
 }
-function financialMarketCandidate(){
+// Source matching is intentionally separate from a user's authorization to use
+// a non-grade-matched number in a financial decision.
+let finMarketChoice={kind:'none',key:null};
+let finLastExternalSourceApplied=false;
+function finManualContextKey(){
+ return [el('scenario-location').value,el('decision-role').value,el('decision-grade').value,currency()].join('|');
+}
+function finEvidenceKey(r){
+ return [el('scenario-location').value,el('decision-role').value,el('decision-grade').value,currency(),r?.source,r?.grade,r?.publishedDate,r?.currency].join('|');
+}
+function financialMarketEvidence(){
  const loc=el('scenario-location').value,grade=el('decision-grade').value,role=el('decision-role').value;
- if(!MARKETS[loc])return null;
+ if(!MARKETS[loc])return {kind:'none',record:null};
  const all=[...(typeof referenceRecords!=='undefined'?referenceRecords:[]),...((typeof automated!=='undefined'&&automated.salaryRecords)||[])];
- const candidates=all.filter(r=>r.country===loc&&r.role===role&&r.grade===grade&&r.basis==='gross'&&r.roleScope==='exact'&&['year','month'].includes(r.period)&&Number(r.low)>0&&Number(r.high)>=Number(r.low));
- candidates.sort((a,b)=>(b.publishedDate||'').localeCompare(a.publishedDate||'')||Number(b.sample||0)-Number(a.sample||0));
- return candidates[0]||null;
+ const sameRole=all.filter(r=>r.country===loc&&r.role===role);
+ const numeric=sameRole.filter(r=>['year','month'].includes(r.period)&&Number.isFinite(Number(r.low))&&Number(r.low)>0&&Number(r.high)>=Number(r.low));
+ const candidateGross=numeric.filter(r=>r.basis==='gross'&&r.roleScope==='exact');
+ const priority=r=>r.grade===grade?3:r.grade==='all'?2:1;
+ const sort=(x,y)=>priority(y)-priority(x)||String(y.publishedDate||'').localeCompare(String(x.publishedDate||''))||Number(y.sample||0)-Number(x.sample||0);
+ candidateGross.sort(sort);
+ if(candidateGross.length){
+  const record=candidateGross[0];
+  return {kind:record.grade===grade?'verified':'indicative',record};
+ }
+ numeric.sort(sort);
+ // Context-only records (NET, unspecified pay, CTC, or non-exact role
+ // scopes) cannot populate a gross employer-cost assumption.
+ return {kind:numeric.length?'context':'none',record:numeric[0]||null};
+}
+function financialMarketCandidate(){
+ const e=financialMarketEvidence();
+ return e.kind==='verified'?e.record:null;
+}
+function finAnnualFromRecord(r){
+ if(!r)return null;
+ const raw=r.median!==null&&r.median!==undefined&&Number(r.median)>0?Number(r.median):(Number(r.low)+Number(r.high))/2;
+ return Number.isFinite(raw)&&raw>0?raw*(r.period==='month'?12:1):null;
+}
+function finRecordSummary(r){
+ if(!r)return '';
+ const base=r.median!==null&&r.median!==undefined?`median ${amount(Number(r.median),r.currency)}`:
+  `range ${amount(Number(r.low),r.currency)}–${amount(Number(r.high),r.currency)}; midpoint used`;
+ return `${base} / ${r.period} · ${r.grade==='all'?'all levels':r.grade} · ${String(r.basis).toUpperCase()} · ${r.source}`;
+}
+function renderFinancialEvidence(e,converted){
+ const parent=el('fin-source-review');if(!parent)return;
+ const r=e.record;
+ const fxInfo=(r&&r.currency!==currency())?(converted===null?`FX unavailable for ${safe(r.currency)} → ${safe(currency())}; enter a gross estimate manually.`:`Converted ${safe(r.currency)} → ${safe(currency())} using Frankfurter FX${typeof fxDate!=='undefined'&&fxDate?' ('+safe(fxDate)+')':''}; FX conversion does not change net into gross.`):'';
+ let badge='',description='',actions='';
+ const source=r?`<div class="fin-evidence-meta">${safe(finRecordSummary(r))} · ${safe(r.publishedDate||r.checkedDate||'publication date not provided')}${r.sample?` · n=${Number(r.sample)}`:''} ${typeof marketLink==='function'?marketLink(r.url,'View Source'):''}</div>`:'';
+ if(finManual.market&&finMarketChoice.kind==='manual'){
+  badge='<span class="fin-badge fin-badge--manual">Manual Estimate</span>';
+  description='<p>You entered a market <strong>GROSS rate manually</strong> for this country and role. Your value overrides the available source suggestion in this scenario; it is a user assumption, not a verified market average.</p>';
+ }else if(e.kind==='verified'){
+  badge='<span class="fin-badge fin-badge--verified">Verified Match</span>';
+  description=converted===null?'<p>Role, level and gross pay basis match, but currency conversion is unavailable. Enter a gross rate manually.</p>':
+   '<p>Same country, role, level and GROSS pay basis. The matched source is used automatically unless you override the rate. “Verified Match” means matching fields, not an independent audit of the publisher.</p>';
+ }else if(e.kind==='indicative'){
+  const gradeInfo=r.grade==='all'?'all seniority levels':`a different level (${safe(r.grade)})`;
+  badge='<span class="fin-badge fin-badge--indicative">Indicative Estimate</span>';
+  const accepted=finMarketChoice.kind==='indicative'&&finMarketChoice.key===finEvidenceKey(r);
+  description=`<p>Same country and occupation, GROSS pay, but sourced from ${gradeInfo}. This is <strong>not a grade-matched market average</strong>. ${accepted?'You accepted it for this scenario.':'It will not enter the calculation until you choose to use it.'}</p>`;
+  if(converted!==null){
+   const unit=el('fin-period').value==='monthly'?'month':'year';
+   description+=`<p class="fin-proposed">${safe(amount(converted/finPeriodFactor(),currency()))} / ${unit} (converted reference, not a verified ${safe(el('decision-grade').value)}-level quote)</p>`;
+   if(!accepted)actions='<button type="button" class="fin-accept" id="fin-use-indicative">Use This Indicative Gross Rate</button>';
+  }else description+='<p>Currency conversion is unavailable; enter your own gross estimate manually.</p>';
+ }else if(e.kind==='context'){
+  badge='<span class="fin-badge fin-badge--context">Context Only</span>';
+  description=`<p>This source is ${safe(String(r.basis).toUpperCase())} pay${r.roleScope!=='exact'?' or a broader occupation family':''}; it cannot be treated as employer gross cost. Enter a separately justified gross estimate manually. No automatic net-to-gross multiplier is applied.</p>`;
+ }else{
+  badge='<span class="fin-badge fin-badge--none">Manual Estimate</span>';
+  description='<p>No documented salary evidence for this country and occupation. Enter a gross market rate manually; no other role or country is substituted.</p>';
+ }
+ const currentUnit=el('fin-period').value==='monthly'?'monthly':'annual';
+ const manualHelp=`<div class="fin-manual-help"><strong>Need a more accurate figure?</strong> Enter a more accurate gross rate manually in <strong>Market Gross Rate / ${currentUnit==='monthly'?'Month':'Year'}</strong> above. Confirm the selected currency and pay period. Your value takes priority for this scenario and is not sent to external salary services.</div>`;
+ parent.innerHTML=`<div class="fin-evidence-top">${badge}<strong>Salary Evidence for This Scenario</strong></div>${description}${source}${fxInfo&&e.kind!=='context'?`<p class="fin-evidence-fx">${fxInfo}</p>`:''}${actions}${manualHelp}<button type="button" class="fin-edit-manual" id="fin-edit-manual">${finManual.market&&finMarketChoice.kind==='manual'?'Edit My Gross Rate':'Enter a More Accurate Gross Rate Manually'} ↗</button>`;
+ el('fin-edit-manual')?.addEventListener('click',()=>{const input=el('fin-market');input?.focus();input?.select();});
+ if(e.kind==='indicative'&&converted!==null&&!finManual.market){
+  const button=el('fin-use-indicative');
+  if(button)button.addEventListener('click',()=>{
+   // Reject any stale click after a change of role, country, grade, source or currency.
+   const latest=financialMarketEvidence();
+   if(latest.kind!=='indicative'||finEvidenceKey(latest.record)!==finEvidenceKey(r))return;
+   const freshAnnual=finAnnualFromRecord(latest.record);
+   const fresh=latest.record.currency===currency()?freshAnnual:
+     typeof convertMoney==='function'?convertMoney(freshAnnual,latest.record.currency,currency()):null;
+   if(fresh===null)return;
+   finManual.market=true;
+   finMarketChoice={kind:'indicative',key:finEvidenceKey(latest.record)};
+   finField('fin-market',fresh);
+   refreshFinancialBenchmark();
+  });
+ }
 }
 function refreshFinancialBenchmark(opts={}){
  renderFinPeriod();
- if(opts.reset){Object.keys(finManual).forEach(k=>finManual[k]=false)}
- const cur=currency(),r=financialMarketCandidate();finSourceRecord=r;
- const marketAnnual=r?((r.median!==null&&r.median!==undefined?Number(r.median):(Number(r.low)+Number(r.high))/2)*(r.period==='month'?12:1)):null;
- const converted=r&&typeof convertMoney==='function'?convertMoney(marketAnnual,r.currency,cur):r&&r.currency===cur?marketAnnual:null;
- if(!finManual.market){finField('fin-market',converted)}
- let src=!r?'No same-role, same-level GROSS market reference. Enter a market rate manually.':
-   converted===null?`Source: ${r.source}. FX unavailable for ${r.currency} → ${cur}; enter manually.`:
-   `${r.source} · ${r.publishedDate||'date not supplied'} · ${r.median!==null&&r.median!==undefined?'source median':'range midpoint (not statistical mean)'} · original ${r.currency} / ${r.period}; ${r.period==='month'?'monthly source × 12 for annual cost model':el('fin-period').value==='monthly'?'annual source ÷ 12 for monthly display':'annual source unchanged'}. Gross only.`;
- if(finManual.market)src='Manually entered market rate (not source-verified). Original benchmark: '+src;
+ if(opts.reset){Object.keys(finManual).forEach(k=>finManual[k]=false);finMarketChoice={kind:'none',key:null}}
+ const cur=currency(),e=financialMarketEvidence(),r=e.record,annual=finAnnualFromRecord(r);
+ const converted=r&&['verified','indicative'].includes(e.kind)?
+  (r.currency===cur?annual:typeof convertMoney==='function'?convertMoney(annual,r.currency,cur):null):null;
+ // A prior approval is valid ONLY for precisely the same record and scenario.
+ if(finMarketChoice.kind==='indicative'&&(e.kind!=='indicative'||finMarketChoice.key!==finEvidenceKey(r))){
+  finManual.market=false;finMarketChoice={kind:'none',key:null};
+ }
+ // A manual quote is a scenario-specific assumption. Never silently carry it
+ // over to another country, role, grade, or report currency.
+ if(finMarketChoice.kind==='manual'&&finMarketChoice.key!==finManualContextKey()){
+  finManual.market=false;finMarketChoice={kind:'none',key:null};
+ }
+ finSourceRecord=e.kind==='verified'||(e.kind==='indicative'&&finMarketChoice.kind==='indicative')?r:null;
+ if(!finManual.market)finField('fin-market',e.kind==='verified'?converted:null);
+ let src='';
+ if(finManual.market){
+  src=finMarketChoice.kind==='indicative'?`User-approved indicative gross assumption · ${r.source} · ${r.grade} level, not a verified match.`:
+    'Manually entered gross estimate. Not a source-verified local average.';
+ }else if(e.kind==='verified'){
+  src=converted===null?`Matched GROSS source: ${r.source}, but FX unavailable; enter manually.`:
+   `${r.source} · ${r.publishedDate||'publication date not supplied'} · ${r.median!==null&&r.median!==undefined?'source median':'range midpoint (not statistical mean)'} · ${r.currency} / ${r.period} → ${cur} / year for calculation. Grade matched.`;
+ }else if(e.kind==='indicative'){
+  src=`Indicative GROSS evidence (${r.grade==='all'?'all levels':'different level: '+r.grade}) from ${r.source}. Accept below to use it, or enter a manual gross rate.`;
+ }else if(e.kind==='context'){
+  src=`Context only · ${r.source} · ${String(r.basis).toUpperCase()} / ${r.period}. Cannot automatically convert this into employer GROSS.`;
+ }else src='No documented role-specific salary reference. Enter a market GROSS rate manually.';
  set('fin-market-source',src);
+ renderFinancialEvidence(e,converted);
  const reference=annualFin('market');
- if(!finManual.internal){finField('fin-internal',reference!==null?reference:FIN_DEMO_INTERNAL)}
- set('fin-internal-note',reference!==null&&!finManual.internal?'Default matches the verified market-rate input. Edit for your organization.':'Illustrative starting rate only; NOT a verified local average. Edit manually.');
- if(!finManual.raise){finField('fin-raise',(annualFin('internal')||0)*FIN_RAISE_PERCENT)}
+ if(!finManual.internal)finField('fin-internal',reference!==null?reference:FIN_DEMO_INTERNAL);
+ set('fin-internal-note',reference!==null&&!finManual.internal?'Default matches the selected market gross input (verified or user-approved indicative). Edit for your organization.':'Illustrative starting rate only; NOT a verified local average. Edit manually.');
+ if(!finManual.raise)finField('fin-raise',(annualFin('internal')||0)*FIN_RAISE_PERCENT);
  let trainingVal=cur==='USD'?FIN_US_TRAIN:typeof convertMoney==='function'?convertMoney(FIN_US_TRAIN,'USD',cur):null;
- if(!finManual.training){finField('fin-training',trainingVal)}
- set('fin-training-note',trainingVal===null&& !finManual.training?'USD training average cannot be converted: enter a budget manually.':
- `Indicative US average: $1,023 per learner (Training Magazine 2026), ${cur==='USD'?'no FX needed':'FX-converted if available'}. Not a reskilling quote.`);
+ if(!finManual.training)finField('fin-training',trainingVal);
+ set('fin-training-note',trainingVal===null&&!finManual.training?'USD training average cannot be converted: enter a budget manually.':
+  `Indicative US average: $1,023 per learner (Training Magazine 2026), ${cur==='USD'?'no FX needed':'FX-converted if available'}. Not a reskilling quote.`);
  applyFinancialAssumptions();
 }
 function applyFinancialAssumptions(){
@@ -158,6 +264,13 @@ function applyFinancialAssumptions(){
  if(grossMarket!==null){
   el('r-newpay').value=Math.round(grossMarket*multiplier);
   el('t-e-new').value=Math.round(grossMarket*multiplier);
+  finLastExternalSourceApplied=true;
+ }else if(finLastExternalSourceApplied){
+  // A source-derived salary from another country/grade must NEVER linger
+  // after the selection has no compatible market rate. Restore demo inputs.
+  el('r-newpay').value=60000;
+  el('t-e-new').value=90000;
+  finLastExternalSourceApplied=false;
  }
  if(raise!==null){
   el('r-raise').value=Math.round(raise*multiplier);
@@ -172,8 +285,8 @@ function applyFinancialAssumptions(){
   el('t-s-train').value=Math.round(training);
   el('hi-onboard').value=Math.round(training);
  }
- const noted=grossMarket===null?'No verified market gross rate. External employer-cost inputs remain DEMO/manual until reviewed.':
-  `Market employer-cost proxy: ${money(grossMarket*multiplier)} per year (gross salary ${money(grossMarket)} + ${overhead}% assumed overhead).`;
+ const noted=grossMarket===null?'No compatible or user-approved market gross rate. External employer-cost inputs remain DEMO/manual until reviewed.':
+  `${finMarketChoice.kind==='indicative'?'USER-APPROVED INDICATIVE':finManual.market?'MANUAL':'GRADE-MATCHED'} market employer-cost proxy: ${money(grossMarket*multiplier)} per year (gross input ${money(grossMarket)} + ${overhead}% assumed overhead).`;
  set('fin-status',`${noted} Internal rate and promotion costs are user-adjustable. Illustrative US promotion default 8.7%; training default $1,023 per learner. No local taxes calculated. Edits update all three models; they are not hiring recommendations.`);
  calculateHire();calculateReplace();calculateTalent();
 }
@@ -279,10 +392,12 @@ el('currency').addEventListener('input',()=>{set('r-currency',currency());refres
 el('decision-grade').addEventListener('change',()=>{el('m-grade').value=el('decision-grade').value;refreshFinancialBenchmark();if(typeof renderMarket==='function')renderMarket();});
 for(const fld of ['market','internal','raise','training'])el('fin-'+fld).addEventListener('input',()=>{
   finManual[fld]=true;
+  if(fld==='market')finMarketChoice={kind:'manual',key:finManualContextKey()};
   if(fld!=='training')finAnnualValues[fld]=fm('fin-'+fld)===null?null:fm('fin-'+fld)*finPeriodFactor();
   if(fld==='internal'&&!finManual.raise){finField('fin-raise',(annualFin('internal')||0)*FIN_RAISE_PERCENT)}
   if(fld==='raise')renderFinPeriod();
-  applyFinancialAssumptions();
+  if(fld==='market')refreshFinancialBenchmark();
+  else applyFinancialAssumptions();
 });
 el('fin-period').addEventListener('change',switchFinPeriod);
 el('fin-overhead').addEventListener('input',applyFinancialAssumptions);

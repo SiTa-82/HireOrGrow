@@ -50,7 +50,7 @@ const sourceHosts=new Set(['salarybyrole.com','www.salarybyrole.com','yubhub.co'
 const allMarkets=Object.keys(MARKETS);
 const marketPresets={eu:allMarkets.filter(x=>MARKETS[x].region==='eu'),us:['united-states'],global:allMarkets};
 const selectedMarkets=()=>Array.from(document.querySelectorAll('.m-country:checked')).map(x=>x.value);
-const SOURCE_FILES={refs:'./data/salary_references.json?v=0.9.7',jobs:'./data/georgia_live.json?v=0.9.7',auto:'./data/automatic_market.json?v=0.9.7',history:'./data/rate_history.json?v=0.9.7'};
+const SOURCE_FILES={refs:'./data/salary_references.json?v=0.9.8',jobs:'./data/georgia_live.json?v=0.9.8',auto:'./data/automatic_market.json?v=0.9.8',history:'./data/rate_history.json?v=0.9.8'};
 let rateHistory={observations:[],lastCheckedAt:null}, referenceRecords=[], georgiaFeed={status:'not_collected',roles:{},generatedAt:null};
 let automated={generatedAt:null,providers:{},salaryRecords:[],vacancyRecords:[]};
 let marketError=[],marketBusy=false,lastLoad=0,marketOpened=false,referenceLoaded=false,fxRates={USD:1},fxDates={},fxDate=null;
@@ -353,7 +353,7 @@ function renderMarket(){
  const shownFeed=georgiaSelected?' · '+stamp:'';
  const relevantErrors=marketError.filter(x=>georgiaSelected||!x.toLowerCase().includes('georgia'));
  set('m-fetchstatus',marketBusy?'Loading site data…':`Public source snapshots: ${reference.length}${shownFeed} · FX ${fxDate||'unavailable'}${relevantErrors.length?' · '+relevantErrors.join('; '):''}`);
- const lines=[`HireOrGrow v0.9.7 · ${MARKET_ROLES[role]} · level ${grade}`,`Markets: ${selected.map(c=>MARKETS[c].name).join(', ')}`,
+ const lines=[`HireOrGrow v0.9.8 · ${MARKET_ROLES[role]} · level ${grade}`,`Markets: ${selected.map(c=>MARKETS[c].name).join(', ')}`,
  `Report created: ${new Date().toISOString().slice(0,10)}`,`Displayed currency: ${el('m-reportcur').value} · Frankfurter FX ${fxDate||'unavailable'}`,`Internal rate: ${raw===null?'Not entered':formatMoney(raw,internalcur)+'/year (manual, fictional)'}`,summary];
  for(const r of reference){const cv=marketConversion(r);lines.push(`${MARKETS[r.country].name}: ${cv.convertedRange} per ${r.period} [${cv.conversionNote}], source original ${cv.original} ${r.currency} per ${r.period}, ${r.basis}, grade ${r.grade}, scope ${r.roleScope||'exact'}, n=${r.sample||'unknown'}, ${r.source}, checked ${r.checkedDate}, updated ${r.publishedDate||'not specified'}, ${r.url}`)}
  if(georgiaSelected)lines.push(`Georgia legacy feed: ${stamp}; ${georgiaFeed.sourceUrl||''}`);

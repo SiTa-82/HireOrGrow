@@ -1,4 +1,4 @@
-## v0.9.7 — Pay rate periods & chart horizons
+## v0.9.8 — Pay rate periods & chart horizons
 - Monthly / Annual display switch for market and internal gross pay and promotion raise. Source records in monthly gross format are annualized ×12; annual ones shown monthly ÷12.
 - Canonical annual values prevent conversion drift and preserve unchanged financial outputs when toggling.
 - Per-scenario chart figures explicitly labelled as one-time cost, N-month total or N-month incremental.
@@ -101,3 +101,12 @@
 - Added a distinct **Rate Trends** section, displaying observations separately by occupation, market, seniority, original currency, gross/net basis, and source. Historical values are never backdated or combined across unlike datasets.
 - Added an append-only public `data/rate_history.json` snapshot and a GitHub Action that saves future source observations back into the repository before publishing. Static studies create a new point only if their published values change. API records are archived only when freshly fetched, not when re-used from an earlier API failure.
 - Unchanged formula structure and all 110 prior salary benchmark records retained.
+
+
+### 0.9.8 — Explicit salary-evidence matching
+- Three evidence statuses in Decision Comparison: Verified Match (same country, job, grade and gross basis), Indicative Estimate (same job, different/all grades, gross basis), and Manual Estimate / Context Only.
+- Indicative evidence is not used automatically; the user must click **Use This Indicative Gross Rate**. Approval is invalidated when country, grade, job, currency or source changes.
+- Net, CTC, unspecified pay basis and broader job families never populate employer gross costs automatically.
+- Source links, reported amounts, pay periods and FX notes shown with assumptions. Calculators and salary library are unchanged.
+
+In each matching state, an explicit explanation and **Enter a More Accurate Gross Rate Manually** action identifies the source, grade coverage, pay basis, period and source/date when available. User input overrides the estimate for the selected country/role/grade/currency; switching scenarios clears a manual market quote rather than silently reusing it.
