@@ -1,5 +1,21 @@
 # HireOrGrow 0.9.6 — Decision Comparison + automated evidence
+HireOrGrow is a lightweight HR analytics tool that helps Talent Acquisition, HR, and business leaders make data-driven workforce decisions.
 
+Key Features:
+
+Salary Benchmarks: Compare market salaries across 9 countries and 43 IT roles, with transparent sources and currency conversion.
+
+Decision Comparison: Evaluate the financial impact of external hiring, internal transfers, employee retention, promotion, and reskilling.
+
+Financial Assumptions: Model workforce costs using market salary benchmarks, manually adjustable internal rates, salary increases, training budgets, and employer overhead.
+
+Rate Trends: Track historical salary changes through automatically archived market observations and visual trend analysis.
+
+Automated Data Updates: Scheduled integration with public salary and job-market APIs, while preserving existing historical benchmarks.
+
+The platform combines market intelligence with interactive financial scenarios to help companies understand talent costs, compare alternatives, and make better-informed workforce decisions.
+
+Current status: Public demo / MVP. Automated data coverage varies by market, and the platform is not yet approved for confidential employee data.
 A public, static, English-language preview of HireOrGrow.
 
 **Decision Comparison** shows three independent charts on one page: external vs internal hire (one-off cost), retain vs replace (full cost over its configured horizon), and hire vs promote vs reskill (incremental costs). Each chart has its own scale and highlights the lowest modeled amount, **not an HR recommendation**. Expand the corresponding editor to change assumptions. The selected position is shared with Salary Benchmarks.
