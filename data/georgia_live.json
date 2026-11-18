@@ -1,0 +1,9 @@
+{
+  "version": "0.7",
+  "provider": "findjobs.ge",
+  "sourceUrl": "https://findjobs.ge/crawl/en/",
+  "generatedAt": null,
+  "status": "not_collected",
+  "note": "Run the Market Data workflow to collect public job ads. No live market salary estimate is supplied by this seed file.",
+  "roles": {}
+}
