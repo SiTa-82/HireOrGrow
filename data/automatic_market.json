@@ -1,0 +1,12 @@
+{
+  "version": "0.9.3",
+  "generatedAt": null,
+  "note": "Awaiting first scheduled GitHub Actions fetch. Existing reference library remains available.",
+  "providers": {
+    "salarybyrole": {"status":"not_run","records":0,"coveredCountries":["netherlands","united-states","india"]},
+    "yubhub": {"status":"not_run","records":0}
+  },
+  "countryCounts": {},
+  "salaryRecords": [],
+  "vacancyRecords": []
+}

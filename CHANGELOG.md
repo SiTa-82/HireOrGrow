@@ -1,3 +1,13 @@
+## v0.9.3 — Open-source salary snapshots and clearer navigation
+
+- New scheduled public-API salary snapshots appear **in addition to** the 110 existing sourced salary references, which are not overwritten.
+- Added separate salary-posted job listings with source, date, and no invented gross/net conversions.
+- Highlighted the two top-level buttons with scale and coin icons, contrasting colors, and a visible active-state outline.
+- Updated GitHub Actions to run the public-source refresh weekly, while retaining prior data on permitted-provider outages.
+- Kept Internal rate manual and isolated from API requests.
+
+**Availability note:** Provider success and geographic coverage are not guaranteed. A successful GitHub Pages deployment does not prove a successful provider refresh; inspect the job summary.
+
 ## v0.9.2 · Expanded salary evidence
 - Increased dated salary references from 7 to 110 across all 9 supported countries.
 - Matched mid-level bands where source data permits; all-grade surveys and candidate CTC stay explicitly differentiated.

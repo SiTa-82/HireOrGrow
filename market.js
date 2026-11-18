@@ -46,12 +46,13 @@ const MARKET_ROLES = {
  "technical-business-analyst": "Technical Business Analyst",
  "technical-support-engineer": "Technical Support Engineer"
 };
-const sourceHosts=new Set(['jobs.ita.am','www.fairpay.ge','findjobs.ge','www.platy.sk','www.paylab.com','frankfurter.dev','www.itechscope.com','www.pearsoncarter.com','hyrezy.com','realtime.jobs','taylor.kz','www.inform.kz']);
+const sourceHosts=new Set(['salarybyrole.com','www.salarybyrole.com','yubhub.co','www.yubhub.co','jobs.ita.am','www.fairpay.ge','findjobs.ge','www.platy.sk','www.paylab.com','frankfurter.dev','www.itechscope.com','www.pearsoncarter.com','hyrezy.com','realtime.jobs','taylor.kz','www.inform.kz']);
 const allMarkets=Object.keys(MARKETS);
 const marketPresets={eu:allMarkets.filter(x=>MARKETS[x].region==='eu'),us:['united-states'],global:allMarkets};
 const selectedMarkets=()=>Array.from(document.querySelectorAll('.m-country:checked')).map(x=>x.value);
-const SOURCE_FILES={refs:'./data/salary_references.json?v=0.9.2',jobs:'./data/georgia_live.json?v=0.9.2'};
+const SOURCE_FILES={refs:'./data/salary_references.json?v=0.9.3',jobs:'./data/georgia_live.json?v=0.9.3',auto:'./data/automatic_market.json?v=0.9.3'};
 let referenceRecords=[], georgiaFeed={status:'not_collected',roles:{},generatedAt:null};
+let automated={generatedAt:null,providers:{},salaryRecords:[],vacancyRecords:[]};
 let marketError=[],marketBusy=false,lastLoad=0,marketOpened=false,referenceLoaded=false,fxRates={USD:1},fxDates={},fxDate=null;
 const showDate=raw=>raw?String(raw).slice(0,10):'Not supplied';
 function marketLink(raw,label){
@@ -221,6 +222,35 @@ function renderComparisonTable(selected,reference,grade){
  return exactCountries.size;
 }
 
+function safeJobUrl(raw){
+ try{const u=new URL(raw);if(u.protocol!=='https:'||u.username||u.password||u.port||u.hostname==='localhost'||u.hostname.endsWith('.localhost'))return null;return u.href}catch{return null}
+}
+function renderAutomaticJobs(selected,role,grade){
+ const host=el('m-auto-results'),status=el('m-auto-status');
+ if(!host||!status)return;
+ const salaryProvider=automated.providers?.salarybyrole||{status:'not_run',records:0};
+ const jobProvider=automated.providers?.yubhub||{status:'not_run',records:0};
+ const jobs=(automated.vacancyRecords||[]).filter(j=>selected.includes(j.country)&&j.role===role&&typeof j.salaryText==='string');
+ const exact=jobs.filter(j=>j.grade===grade);
+ const shown=(exact.length?exact:jobs).slice(0,12);
+ const oldJobs=shown.filter(j=>j.cacheStatus==='retained_previous').length;
+ const totalBands=(automated.salaryRecords||[]).filter(r=>selected.includes(r.country)&&r.role===role).length;
+ status.textContent=`API snapshot ${showDate(automated.generatedAt)} · SalaryByRole: ${salaryProvider.status||'not run'} (${totalBands} relevant bands) · YubHub: ${jobProvider.status||'not run'} (${jobs.length} salary-posted ads for this role in selected markets). Public API coverage can be zero even when jobs exist.`;
+ if(!selected.length){host.innerHTML='<p class="marketnote">Select a country to see salary-posted job listings.</p>';return}
+ if(!shown.length){host.innerHTML='<p class="marketnote">No salary-posted vacancies in this available API snapshot for this position and selection. Existing sourced salary surveys above remain available. This does not mean there are no local vacancies.</p>';return}
+ const lines=shown.map(j=>{
+  const address=safeJobUrl(j.url);
+  const title=address?`<a href="${safe(address)}" target="_blank" rel="noopener noreferrer nofollow">${safe(j.title)} ↗</a>`:safe(j.title);
+  const level=j.grade==='unspecified'?'Level not stated':j.grade===grade?'Level match':`Other level: ${j.grade}`;
+  const observed=j.observedDate||showDate(j.fetchedAt);
+  const old=j.cacheStatus==='retained_previous'?' · retained previous snapshot, not refreshed today':'';
+  const salary=safe(j.salaryText);
+  return `<article class="auto-vacancy"><div class="auto-vacancy-title">${title}<span class="pill">${safe(MARKETS[j.country]?.name||j.country)}</span></div>`+
+   `<strong class="auto-vacancy-pay">${salary}</strong><p class="marketnote">${safe(j.company||'Employer unspecified')} · ${safe(j.location||'')} · ${safe(level)} · period ${safe(j.period||'unspecified')} · pay basis unspecified</p>`+
+   `<p class="market-mini-caption">Source: YubHub (CC BY 4.0) · indexed ${safe(observed)}${safe(old)} · job location is based on source country filter and may require manual verification. <a href="https://yubhub.co/api/" target="_blank" rel="noopener noreferrer">Provider details ↗</a></p></article>`;
+ }).join('');
+ host.innerHTML=`<p class="marketnote">${shown.length} salary-disclosing job listing(s) shown${oldJobs?' · '+oldJobs+' retained from a previous refresh':''}. These are individual offers, not a market salary median. ${exact.length?'Grade-labelled listings shown first.':'Exact grade not provided; other levels shown only as context.'}</p><div class="auto-vacancy-grid">${lines}</div>`;
+}
 function renderMarket(){
  const role=el('m-role').value,grade=el('m-grade').value,selected=selectedMarkets();
  // Every country-specific evidence section must obey the checkbox selection.
@@ -231,7 +261,8 @@ function renderMarket(){
  georgiaPanel.hidden=!hasUsableGeorgiaFeed;
  georgiaPanel.style.display=hasUsableGeorgiaFeed?'':'none';
  const raw=internalAnnual(),internalloc=el('m-home').value,internalcur=el('m-history-cur').value;
- const reference=referenceRecords.filter(r=>r.role===role&&selected.includes(r.country));
+ const availableAuto=(automated.salaryRecords||[]).filter(r=>r&&r.role===role&&selected.includes(r.country)&&['mid','senior','junior'].includes(r.grade)&&r.roleScope==='exact');
+ const reference=referenceRecords.filter(r=>r.role===role&&selected.includes(r.country)).concat(availableAuto);
  const haveCountries=new Set(reference.map(r=>r.country));
  const jobs=georgiaFeed.roles?.[role];
  if(selected.includes('georgia')&&georgiaFeed.status==='ok'&&jobs?.sampleCount)haveCountries.add('georgia');
@@ -268,6 +299,7 @@ function renderMarket(){
  }
  el('m-results').innerHTML=rendered.join('')||'<p class="marketnote">No detailed sources available for this selection.</p>';
  if(georgiaSelected)renderGeorgiaJobs(role,grade);
+ renderAutomaticJobs(selected,role,grade);
  const stamp=georgiaFeed.generatedAt?'Georgia feed: '+showDate(georgiaFeed.generatedAt):'Georgia feed not published';
  const scopeCaveat=[];
  if(!selected.length)scopeCaveat.push('Select one or more markets to display salary evidence.');
@@ -283,21 +315,24 @@ function renderMarket(){
  const shownFeed=georgiaSelected?' · '+stamp:'';
  const relevantErrors=marketError.filter(x=>georgiaSelected||!x.toLowerCase().includes('georgia'));
  set('m-fetchstatus',marketBusy?'Loading site data…':`Public source snapshots: ${reference.length}${shownFeed} · FX ${fxDate||'unavailable'}${relevantErrors.length?' · '+relevantErrors.join('; '):''}`);
- const lines=[`HireOrGrow v0.9.2 · ${MARKET_ROLES[role]} · level ${grade}`,`Markets: ${selected.map(c=>MARKETS[c].name).join(', ')}`,
+ const lines=[`HireOrGrow v0.9.3 · ${MARKET_ROLES[role]} · level ${grade}`,`Markets: ${selected.map(c=>MARKETS[c].name).join(', ')}`,
  `Report created: ${new Date().toISOString().slice(0,10)}`,`Displayed currency: ${el('m-reportcur').value} · Frankfurter FX ${fxDate||'unavailable'}`,`Internal rate: ${raw===null?'Not entered':formatMoney(raw,internalcur)+'/year (manual, fictional)'}`,summary];
  for(const r of reference){const cv=marketConversion(r);lines.push(`${MARKETS[r.country].name}: ${cv.convertedRange} per ${r.period} [${cv.conversionNote}], source original ${cv.original} ${r.currency} per ${r.period}, ${r.basis}, grade ${r.grade}, scope ${r.roleScope||'exact'}, n=${r.sample||'unknown'}, ${r.source}, checked ${r.checkedDate}, updated ${r.publishedDate||'not specified'}, ${r.url}`)}
- if(georgiaSelected)lines.push(`Georgia job feed: ${stamp}; ${georgiaFeed.sourceUrl||''}`);
+ if(georgiaSelected)lines.push(`Georgia legacy feed: ${stamp}; ${georgiaFeed.sourceUrl||''}`);
+ for(const j of (automated.vacancyRecords||[]).filter(j=>selected.includes(j.country)&&j.role===role).slice(0,30)){lines.push(`Employer salary-posted vacancy (${j.country}): ${j.salaryText} · ${j.title} · index date ${j.observedDate||showDate(j.fetchedAt)} · ${j.url}`)}
  lines.push(`Disclaimer: Not an employer-total-cost estimate, not an automated HR recommendation. Do not use NDA data.`);
  marketReport=lines.join('\n');
 }
 async function loadMarkets(){
  const run=++lastLoad;marketBusy=true;marketError=[];renderMarket();
- const tasks=await Promise.allSettled([fetchData(SOURCE_FILES.refs),fetchData(SOURCE_FILES.jobs),updateFx()]);
+ const tasks=await Promise.allSettled([fetchData(SOURCE_FILES.refs),fetchData(SOURCE_FILES.jobs),fetchData(SOURCE_FILES.auto),updateFx()]);
  if(run!==lastLoad)return;
  if(tasks[0].status==='fulfilled'&&Array.isArray(tasks[0].value.records)){referenceRecords=tasks[0].value.records;referenceLoaded=true;}
  else{referenceRecords=[];referenceLoaded=false;marketError.push('Salary reference file unavailable')}
  if(tasks[1].status==='fulfilled'&&tasks[1].value&&typeof tasks[1].value.roles==='object'){georgiaFeed=tasks[1].value;}
  else{georgiaFeed={status:'unavailable',roles:{}};marketError.push('Georgia job feed file unavailable')}
+ if(tasks[2].status==='fulfilled'&&tasks[2].value&&Array.isArray(tasks[2].value.salaryRecords)&&Array.isArray(tasks[2].value.vacancyRecords)){automated=tasks[2].value;}
+ else{automated={providers:{},salaryRecords:[],vacancyRecords:[],generatedAt:null};marketError.push('Automated source snapshot unavailable')}
  marketBusy=false;renderMarket();
 }
 function setMarketPreset(type){

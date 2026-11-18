@@ -28,15 +28,31 @@ def main():
    # public site data to the checked-in JSON fixtures (FX is mocked above).
    page.route('https://hireorgrow.example/data/**',lambda route:route.fulfill(
        content_type='application/json',body=(ROOT/'data'/route.request.url.split('/data/')[1].split('?')[0]).read_text('utf8')))
+   page.route('https://hireorgrow.example/data/automatic_market.json*',lambda route:route.fulfill(content_type='application/json',body=json.dumps({
+      'version':'0.9.3','generatedAt':'2026-11-18T14:00:00Z',
+      'providers':{'salarybyrole':{'status':'ok','records':3},'yubhub':{'status':'ok','records':1}},
+      'salaryRecords':[{'country':'netherlands','role':'devops-engineer','grade':'mid','source':'SalaryByRole (automated API)',
+       'url':'https://salarybyrole.com/api/salary?role=devops-engineer&country=netherlands','type':'aggregated_api_estimate',
+       'currency':'EUR','period':'year','basis':'unspecified','low':64000,'median':72000,'high':80000,
+       'rangeLabel':'Source estimate','sample':None,'publishedDate':'2026','checkedDate':'2026-11-18',
+       'fetchedAt':'2026-11-18T14:00:00Z','confidence':'provider_estimate','roleScope':'exact','note':'Test source only'}],
+      'vacancyRecords':[{'country':'georgia','role':'devops-engineer','grade':'mid', 'title':'Mid-level DevOps Engineer',
+       'company':'Example Employer','location':'Tbilisi','salaryText':'₾6,000–₾8,000 per month','period':'month',
+       'source':'YubHub (employer job ad)','url':'https://jobs.example.com/posting',
+       'observedDate':'2026-11-18','fetchedAt':'2026-11-18T14:00:00Z'}]
+   })))
    html=(ROOT/'index.html').read_text('utf8')
-   html=html.replace('<link href="./styles.css?v=0.9.2" rel="stylesheet"/>','<style>'+(ROOT/'styles.css').read_text('utf8')+'</style>')
-   html=html.replace('<script src="./app.js?v=0.9.2"></script>','<script>'+(ROOT/'app.js').read_text('utf8')+'</script>')
-   html=html.replace('<script src="./market.js?v=0.9.2"></script>','<script>'+(ROOT/'market.js').read_text('utf8')+'</script>')
+   html=html.replace('<link href="./styles.css?v=0.9.3" rel="stylesheet"/>','<style>'+(ROOT/'styles.css').read_text('utf8')+'</style>')
+   html=html.replace('<script src="./app.js?v=0.9.3"></script>','<script>'+(ROOT/'app.js').read_text('utf8')+'</script>')
+   html=html.replace('<script src="./market.js?v=0.9.3"></script>','<script>'+(ROOT/'market.js').read_text('utf8')+'</script>')
    html=html.replace('http-equiv="Content-Security-Policy"','http-equiv="Test-Only-CSP"')
    html=html.replace('<head>','<head><base href="https://hireorgrow.example/">')
    page.set_content(html,wait_until='domcontentloaded')
-   assert '0.9.2' in page.title()
+   assert '0.9.3' in page.title()
    assert page.locator('#tab-decision').get_attribute('aria-selected')=='true'
+   assert page.locator('#tab-decision .top-nav-symbol svg').count()==1
+   assert page.locator('#tab-market .top-nav-symbol svg').count()==1
+   assert page.locator('#tab-decision .top-nav-symbol').get_attribute('aria-hidden')=='true'
    assert page.locator('#decision-chart .decision-chart-card').count()==3
    assert page.locator('#decision-chart .decision-chart-icon').count()==0
    assert page.locator('#tab-market strong').text_content()=='Salary Benchmarks'
@@ -67,6 +83,8 @@ def main():
    assert page.locator('#role').input_value()=='Bioinformatics Engineer'
    assert page.locator('#t-role').input_value()=='Bioinformatics Engineer'
    page.locator('#tab-market').click()
+   assert page.locator('#tab-market').get_attribute('aria-selected')=='true'
+   assert 'active' in page.locator('#tab-market').get_attribute('class')
    assert page.locator('#market').is_visible()
    assert page.locator('#decision').is_hidden()
    page.wait_for_function("document.querySelector('#m-fetchstatus').textContent.includes('Public source snapshots:')",timeout=15000)
@@ -79,12 +97,15 @@ def main():
    assert 'Portugal' in page.locator('#m-compare-rows').inner_text()
    assert 'India' in page.locator('#m-compare-rows').inner_text()
    assert 'iTechScope' in page.locator('#m-compare-rows').inner_text()
+   assert 'SalaryByRole' in page.locator('#m-results').inner_text() or 'SalaryByRole' in page.locator('#m-auto-status').inner_text()
+   assert '₾6,000' in page.locator('#m-auto-results').inner_text()
    assert 'Realtime Recruitment' in page.locator('#m-compare-rows').inner_text()
    # Check market selection never leaks unrelated countries.
    page.locator('[data-preset="clear"]').click()
    page.locator('.m-country[value="armenia"]').check()
    assert page.locator('#m-compare-rows .market-mini-card').count()==1
    assert 'Georgia' not in page.locator('#m-compare-rows').inner_text()
+   assert 'Tbilisi' not in page.locator('#m-auto-results').inner_text()
    page.locator('#tab-decision').click()
    assert page.locator('#decision-role').input_value()=='devops-engineer'
    page.locator('#currency').select_option('EUR')
