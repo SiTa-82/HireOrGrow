@@ -2,14 +2,14 @@
 // All market/salary source payloads are public, pre-processed datasets.
 // Manual Internal rate never enters a network request. Only currency codes go to Frankfurter.
 const MARKET_ROLES = {
- 'devops-engineer':'DevOps Engineer', 'software-engineer':'Software Engineer',
+ 'devops-engineer':'DevOps Engineer', 'software-engineer':'Software Engineer', 'backend-engineer':'Backend Engineer',
  'cloud-architect':'Cloud Architect', 'data-scientist':'Data Scientist',
  'site-reliability-engineer':'Site Reliability Engineer'
 };
 const sourceHosts=new Set(['jobs.ita.am','www.fairpay.ge','findjobs.ge','www.platy.sk','www.paylab.com','frankfurter.dev']);
 const priorityMarkets=['armenia','georgia','slovakia'];
 const allMarkets=Object.keys(MARKETS);
-const marketPresets={priority:priorityMarkets,eu:allMarkets.filter(x=>MARKETS[x].region==='eu'),us:['united-states'],global:allMarkets};
+const marketPresets={priority:priorityMarkets,eu:allMarkets.filter(x=>MARKETS[x].region==='eu'),us:['united-states'],india:['india'],global:allMarkets};
 const selectedMarkets=()=>Array.from(document.querySelectorAll('.m-country:checked')).map(x=>x.value);
 const SOURCE_FILES={refs:'./data/salary_references.json',jobs:'./data/georgia_live.json'};
 let referenceRecords=[], georgiaFeed={status:'not_collected',roles:{},generatedAt:null};
@@ -61,8 +61,9 @@ function gradeMismatch(r,grade){return r.grade!==grade}
 function renderReferenceCard(r,selectedGrade){
  const isMatch=!gradeMismatch(r,selectedGrade);
  const level=r.grade==='all'?'All experience levels':r.grade==='senior'?'Senior':r.grade==='mid'?'Mid-level':'Junior';
- const verified=isMatch&&r.basis==='gross';
- const header=verified?'Level-specific gross':'Context only · not grade-matched';
+ const roleMatched=r.roleScope!=='family';
+ const verified=isMatch&&roleMatched&&r.basis==='gross'&&Number(r.sample||0)>=8;
+ const header=!roleMatched?'Job-family context · not role-specific':!isMatch?'Context only · level mismatch':r.basis==='gross'?'Role + level match · gross':'Role + level match · '+String(r.basis).toUpperCase();
  const origin=`${safe(r.source)} · ${marketLink(r.url,'Source page')} · checked: ${safe(showDate(r.checkedDate))}`;
  const details=`${safe(r.rangeLabel)} · ${safe(level)} · ${safe(r.basis.toUpperCase())} · ${safe(r.currency)} per ${safe(r.period)}${Number.isFinite(r.sample)?' · n='+safe(r.sample):''}`;
  const annualFactor=r.period==='month'?12:1;
@@ -85,8 +86,10 @@ function renderGeorgiaJobs(role,grade){
  const obj=georgiaFeed.roles?.[role];
  const status=georgiaFeed.status||'unavailable';
  if(status!=='ok'){
-  box.innerHTML=`<p class="marketnote">No successful scheduled collection yet (${safe(status)}). This is not evidence that vacancies do not exist. ${marketLink('https://findjobs.ge/crawl/en/','Explore source')}</p>`;
-  set('m-georgia-count','No fresh feed');return;
+  const blocked=status==='blocked'||georgiaFeed.errorType==='PermissionError';
+  const reason=blocked?'Collection blocked by the source’s robots.txt. The workflow respects this restriction; no vacancy data was imported.':'No successful source collection is available.';
+  box.innerHTML=`<p class="marketnote">${safe(reason)} This does not mean there are no jobs. ${marketLink('https://findjobs.ge/crawl/en/','Explore source')}</p>`;
+  set('m-georgia-count',blocked?'Access blocked':'No fresh feed');return;
  }
  if(!obj){box.innerHTML='<p class="marketnote">No result for this occupation in the most recent dataset.</p>';set('m-georgia-count','0 matching ads');return}
  const list=Array.isArray(obj.vacancies)?obj.vacancies:[];
@@ -99,23 +102,57 @@ function renderGeorgiaJobs(role,grade){
  box.innerHTML=summary+`<div class="marketnote">${safe(caveat)}</div>`+lines;
  set('m-georgia-count',sample+' salary-posted ads');
 }
+
+// Always put a comparison summary first. These figures remain in original units;
+// no ranking is attempted across NET/GROSS/unknown-basis records.
+function renderComparisonTable(selected,reference,grade){
+ const output=[];
+ for(const country of selected){
+  const available=reference.filter(r=>r.country===country);
+  const rank=r=>(r.roleScope==='family'?2:0)+(r.grade===grade?0:1);
+  const best=available.slice().sort((a,b)=>rank(a)-rank(b))[0];
+  const countryText=safe(MARKETS[country].name);
+  if(!best){
+   output.push(`<tr><th scope="row">${countryText}</th><td class="muted-cell">No documented range</td><td><span class="fit-label no-fit">No coverage</span></td><td><span class="mini-muted">Not available</span></td></tr>`);
+   continue;
+  }
+  const exactRole=best.roleScope!=='family',exactLevel=best.grade===grade;
+  const fullMatch=exactRole&&exactLevel;
+  const label=!exactRole?'Role family only':exactLevel?`Level matched · ${best.basis.toUpperCase()}`:'Different level / all grades';
+  const state=!fullMatch?'context':'partial';
+  const salary=`${formatMoney(best.low,best.currency)}–${formatMoney(best.high,best.currency)}`;
+  const labelMedian=best.median===null?'':`<span class="mini-muted">Median ${safe(formatMoney(best.median,best.currency))}</span>`;
+  output.push(`<tr><th scope="row">${countryText}</th><td><strong>${safe(salary)} / ${best.period==='month'?'mo':'yr'}</strong><span class="mini-muted">${safe(best.basis.toUpperCase())} · ${safe(best.grade==='all'?'all levels':best.grade)}</span>${labelMedian}</td><td><span class="fit-label ${state}">${safe(label)}</span><span class="mini-muted">${best.sample?'n='+safe(best.sample):'Sample not published'}</span></td><td>${marketLink(best.url,best.source)}<span class="mini-muted">${best.publishedDate?'Source '+safe(showDate(best.publishedDate))+' · ':''}checked ${safe(showDate(best.checkedDate))}</span></td></tr>`);
+ }
+ el('m-compare-rows').innerHTML=output.join('')||'<tr><td colspan="4">Select markets to compare.</td></tr>';
+ const exactCountries=new Set(reference.filter(r=>r.roleScope!=='family'&&r.grade===grade).map(r=>r.country));
+ return exactCountries.size;
+}
+
 function renderMarket(){
  const role=el('m-role').value,grade=el('m-grade').value,selected=selectedMarkets();
+ // Every country-specific evidence section must obey the checkbox selection.
+ // A provider's existence in the underlying dataset is NOT grounds to show its card.
+ const georgiaSelected=selected.includes('georgia');
+ const georgiaPanel=el('m-georgia-panel');
+ georgiaPanel.hidden=!georgiaSelected;
+ georgiaPanel.style.display=georgiaSelected?'':'none';
  const raw=internalAnnual(),internalloc=el('m-home').value,internalcur=el('m-history-cur').value;
  const reference=referenceRecords.filter(r=>r.role===role&&selected.includes(r.country));
  const haveCountries=new Set(reference.map(r=>r.country));
  const jobs=georgiaFeed.roles?.[role];
  if(selected.includes('georgia')&&georgiaFeed.status==='ok'&&jobs?.sampleCount)haveCountries.add('georgia');
  set('m-result-title',`${MARKET_ROLES[role]} · ${grade==='mid'?'Mid-level':grade==='senior'?'Senior':'Junior'}`);
- set('m-context',`${selected.length} selected markets · ${haveCountries.size} markets with public reference evidence · not all are grade-matched`);
- set('m-locations',selected.length);set('m-comparable',haveCountries.size);
+ const gradeMatchCount=renderComparisonTable(selected,reference,grade);
+ set('m-context',`${selected.length} selected markets · ${gradeMatchCount} role-and-level matches · surveys are dated snapshots`);
+ set('m-locations',selected.length);set('m-comparable',gradeMatchCount);
  set('m-rate-date',fxDate?'FX · '+fxDate:'FX not available');
  set('m-internal',raw===null?'Not entered':formatMoney(raw,internalcur)+'/yr');
- let summary='Local public-source records are displayed in original units. Do not infer a Mid-level salary from Senior or all-seniority surveys. ';
+ let summary='Read the market table first: salary is shown in original currency and period; NET and GROSS are not interchangeable. A role-family or other-level source is context, not a matching salary quote. ';
  if(raw===null)summary+='Optional manual Internal rate is not saved or sent to salary providers.';
  else if(el('m-rate-type').value==='billing')summary+='Internal input is a client billing rate, not a salary; comparison is disabled.';
  else{
-  const comparable=reference.find(r=>r.country===internalloc && r.grade===grade && r.basis==='gross' && r.median!==null);
+  const comparable=reference.find(r=>r.country===internalloc && r.grade===grade && r.roleScope!=='family' && r.basis==='gross' && r.median!==null);
   if(comparable){
    const v=convertMoney(raw,internalcur,comparable.currency);
    if(v===null)summary+='Reference FX is unavailable for comparison.';
@@ -123,7 +160,7 @@ function renderMarket(){
     summary+=`Manual gross rate is ${Math.abs(dif).toFixed(1)}% ${dif>=0?'above':'below'} the grade-specific reference median. Source: ${comparable.source}.`;
    }
   }else{
-   const contextual=reference.find(r=>r.country===internalloc&&r.basis==='gross');
+   const contextual=reference.find(r=>r.country===internalloc&&r.roleScope!=='family'&&r.basis==='gross');
    if(contextual){const val=convertMoney(raw,internalcur,contextual.currency),annual=contextual.period==='month'?12:1;
     if(val!==null)summary+=`Context only: this internal gross rate is ${val<contextual.low*annual?'below':val>contextual.high*annual?'above':'within'} the all-level range published by ${contextual.source}. No grade-specific percentage gap is shown.`;
     else summary+='Reference FX unavailable; no salary gap calculated.';
@@ -133,17 +170,31 @@ function renderMarket(){
  set('m-ceo',summary);
  const rendered=[];
  for(const c of selected){const entries=reference.filter(r=>r.country===c);
-  if(!entries.length){rendered.push(`<article class="benchmark snapshot"><div class="benchmark-top"><strong>${safe(MARKETS[c].name)}</strong><span class="flag uncertain">No verified salary reference</span></div><p class="marketnote">No curated benchmark for this occupation and market yet. No salary is inferred from a neighboring country or different profession.</p></article>`);continue}
-  rendered.push(`<div class="country-source-group"><h3 class="country-heading">${safe(MARKETS[c].name)}</h3>${entries.map(r=>renderReferenceCard(r,grade)).join('')}</div>`);
+  if(!entries.length){continue}
+  rendered.push(`<details class="country-source-group"><summary>${safe(MARKETS[c].name)} · ${entries.length} attributed ${entries.length===1?'record':'records'}</summary>${entries.map(r=>renderReferenceCard(r,grade)).join('')}</details>`);
  }
- el('m-results').innerHTML=rendered.join('')||'<p class="marketnote">Select a country to see documented salary sources.</p>';
- renderGeorgiaJobs(role,grade);
+ el('m-results').innerHTML=rendered.join('')||'<p class="marketnote">No detailed sources available for this selection.</p>';
+ if(georgiaSelected)renderGeorgiaJobs(role,grade);
  const stamp=georgiaFeed.generatedAt?'Georgia feed: '+showDate(georgiaFeed.generatedAt):'Georgia feed not published';
- set('m-fetchstatus',marketBusy?'Loading site data…':`Public source snapshots: ${reference.length} · ${stamp} · FX ${fxDate||'unavailable'}${marketError.length?' · '+marketError.join('; '):''}`);
- const lines=[`HireOrGrow v0.7 · ${MARKET_ROLES[role]} · level ${grade}`,`Markets: ${selected.map(c=>MARKETS[c].name).join(', ')}`,
+ const scopeCaveat=[];
+ if(!selected.length)scopeCaveat.push('Select one or more markets to display salary evidence.');
+ else{
+  scopeCaveat.push('Historical survey figures are reference information, not current salary offers or employer-total-cost estimates.');
+  if(selected.includes('armenia'))scopeCaveat.push('Armenia: available ITA Jobs figures are NET; some records belong to Senior or other positions.');
+  if(selected.includes('georgia'))scopeCaveat.push('Georgia: Fairpay samples are small and do not state NET/GROSS; the separate vacancy feed is blocked by source access restrictions.');
+  if(selected.includes('slovakia'))scopeCaveat.push('Slovakia: the Platy.sk DevOps figures are GROSS and include all seniority levels.');
+  if(selected.some(c=>!['armenia','georgia','slovakia'].includes(c)))scopeCaveat.push('Some selected markets have no verified salary records for this role and level; no amount is inferred.');
+  scopeCaveat.push('Different pay bases and grades cannot be directly compared. The manual Internal rate is separate and never uploaded.');
+ }
+ set('m-interpretation', 'Interpretation: '+scopeCaveat.join(' '));
+ const shownFeed=georgiaSelected?' · '+stamp:'';
+ const relevantErrors=marketError.filter(x=>georgiaSelected||!x.toLowerCase().includes('georgia'));
+ set('m-fetchstatus',marketBusy?'Loading site data…':`Public source snapshots: ${reference.length}${shownFeed} · FX ${fxDate||'unavailable'}${relevantErrors.length?' · '+relevantErrors.join('; '):''}`);
+ const lines=[`HireOrGrow v0.8.1 · ${MARKET_ROLES[role]} · level ${grade}`,`Markets: ${selected.map(c=>MARKETS[c].name).join(', ')}`,
  `Report created: ${new Date().toISOString().slice(0,10)}`,`FX: Frankfurter ${fxDate||'unavailable'}`,`Internal rate: ${raw===null?'Not entered':formatMoney(raw,internalcur)+'/year (manual, fictional)'}`,summary];
- for(const r of reference)lines.push(`${MARKETS[r.country].name}: ${displaySalary(r)} per ${r.period}, ${r.basis}, grade ${r.grade}, n=${r.sample||'unknown'}, ${r.source}, checked ${r.checkedDate}, updated ${r.publishedDate||'not specified'}, ${r.url}`);
- lines.push(`Georgia job feed: ${stamp}; ${georgiaFeed.sourceUrl||''}`,`Disclaimer: Not an employer-total-cost estimate, not an automated HR recommendation. Do not use NDA data.`);
+ for(const r of reference)lines.push(`${MARKETS[r.country].name}: ${displaySalary(r)} per ${r.period}, ${r.basis}, grade ${r.grade}, scope ${r.roleScope||'exact'}, n=${r.sample||'unknown'}, ${r.source}, checked ${r.checkedDate}, updated ${r.publishedDate||'not specified'}, ${r.url}`);
+ if(georgiaSelected)lines.push(`Georgia job feed: ${stamp}; ${georgiaFeed.sourceUrl||''}`);
+ lines.push(`Disclaimer: Not an employer-total-cost estimate, not an automated HR recommendation. Do not use NDA data.`);
  marketReport=lines.join('\n');
 }
 async function loadMarkets(){
@@ -170,3 +221,7 @@ el('m-refresh').addEventListener('click',loadMarkets);
 el('tab-market').addEventListener('click',()=>{if(!marketOpened){marketOpened=true;loadMarkets()}});
 el('m-copy').onclick=()=>copy(marketReport);
 renderMarket();
+
+// The reference section is the default landing view; load its public datasets now.
+marketOpened=true;
+loadMarkets();

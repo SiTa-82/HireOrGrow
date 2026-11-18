@@ -1,27 +1,26 @@
-# HireOrGrow 0.7 — Test checklist
+# HireOrGrow v0.8 — Test plan
 
-## Automated (offline, fictional fixture)
+## User-facing checks
 
-1. `python tests/test_source_pipeline.py` — schemas, deduplication, role/grade matching, rejecting hourly, remote and missing-pay entries, and minimum-sample rule.
-2. `python tests/test_browser.py` — all three financial calculators, Armenian/Georgian/Slovak source cards, dates and basis labels, EU/US/Global/Priority 3, manual internal rate does not initiate a request, and Georgia feed rendering with a *mocked* two-job sample.
+1. Site opens with **Market Intelligence** (reference-only) and a separate **Decision Calculators** category.
+2. **Priority 3** selects Armenia, Georgia and Slovakia (3 countries).
+3. **EU** selects Portugal, Finland, Netherlands and Slovakia (4 supported EU states). This is *not* an EU-wide salary average.
+4. **US** selects the United States, **India** selects India, **Global** selects all nine supported countries, **Clear** selects none.
+5. The comparison table shows source attribution for roles with verified public records. Unsupported locations display **No documented range**, never an estimated amount.
+6. For Mid-level DevOps: Armenia Senior NET, Georgia all-grades unknown basis and Slovakia all-grades GROSS are labeled context, **not grade-matched**.
+7. Backend Engineer Mid-level in Armenia loads a dated, grade-matched ITA Jobs reference (NET, not employer cost).
+8. Expand **Source details** to inspect original URLs, checks, sample size and pay basis.
+9. Editing a **fictional** `Internal rate` triggers no external requests; data stays in the browser tab only. No NDA data.
+10. All three decision calculators still update instantly when inputs change; do not silently borrow reference salary data.
+11. GitHub Pages workflow reports Georgia source status as **blocked**. Source polling is paused because the source's robots.txt denies crawler access; do not interpret a green deploy as live collection.
 
-These tests **do not** prove the real source can be reached or that its compensation numbers are accurate.
+## Automated local tests
 
-## Live GitHub acceptance
+```bash
+python -m pip install -r requirements-dev.txt
+python -m playwright install chromium
+python tests/test_browser.py
+python tests/test_source_pipeline.py
+```
 
-- [ ] `Settings → Pages → Source = GitHub Actions` is selected, after uploading the v0.7 files.
-- [ ] `Actions → Publish HireOrGrow with updated Georgia vacancy data` completes (green).
-- [ ] The deployed `/data/georgia_live.json` displays a real `status` and timestamp, not just the packaged `not_collected` seed.
-- [ ] Armenia's ITA Jobs card states **Senior, NET, 10 answers** — not a Mid-level estimate.
-- [ ] Georgia Fairpay card states **all grades, six self-reports, pay basis unknown**.
-- [ ] Slovakia Platy.sk card states **all grades, gross, 324 verified respondents**.
-- [ ] Clicking source links lands on the original country and occupation.
-- [ ] Georgia's vacancy feed only includes relevant local postings with disclosed monthly GEL salaries; inspect at least two linked ads.
-- [ ] If fewer than eight postings disclose pay, **no median** appears.
-- [ ] Changing manual Internal rate does not include its value in Network requests.
-- [ ] Job market data unavailable? An explicit warning appears, not a fabricated range.
-- [ ] Other financial calculators produce same results as v0.6 and no JavaScript console errors.
-
-## Known limits
-
-Salary surveys for Armenia and Slovakia are **manual, dated snapshots**, not live API data. Net, gross, all-grade and grade-specific ranges cannot be treated as equivalent. Currency conversions are informative only; the demo does not calculate local employer taxes or cost of replacement from this tab.
+These tests use simulated FX and source payloads. They do not verify current salary statistics or licenses. For authorized live collection, a permitted provider API or explicit written permission is needed.

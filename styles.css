@@ -38,3 +38,52 @@
 .status{overflow-wrap:anywhere}
 #market .marketsettings .fieldgrid{grid-template-columns:repeat(2,minmax(0,1fr))}
 @media(max-width:430px){#market .marketsettings .fieldgrid{grid-template-columns:1fr}}
+
+/* v0.8: CEO-first evidence comparison, without visually implying NET/GROSS comparability */
+.market-choice{margin-top:12px}
+.market-country-picker{margin-top:12px}
+.market-country-picker>summary,.manual-rate-details>summary,.country-source-group>summary{cursor:pointer;color:var(--navy);font-weight:750;list-style-position:outside}
+.market-country-picker .locs{margin-top:11px}
+.manual-rate-details{display:block;margin-top:12px}
+.manual-rate-details>summary{font-size:15px}
+.manual-rate-details>p,.manual-rate-details>.fieldgrid{margin-top:12px}
+.decision-header{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-top:17px}
+.decision-header h3{margin:0 0 9px}
+.table-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:12px}
+.market-comparison{width:100%;border-collapse:collapse;font-size:13px;min-width:600px}
+.market-comparison th,.market-comparison td{text-align:left;padding:12px 10px;vertical-align:top;border-bottom:1px solid #e8edf1}
+.market-comparison tr:last-child th,.market-comparison tr:last-child td{border-bottom:0}
+.market-comparison thead th{background:#eef4f6;font-size:11px;font-weight:750;text-transform:uppercase;letter-spacing:.03em;color:#627382}
+.market-comparison tbody th{min-width:88px;color:var(--navy);font-weight:750}
+.market-comparison td strong{font-weight:750;color:var(--navy);white-space:nowrap}
+.market-comparison a{color:#126c73}
+.mini-muted{display:block;font-size:11px;color:#687a8a;margin-top:4px}
+.muted-cell{color:#728294}
+.fit-label{display:inline-block;border-radius:7px;padding:4px 7px;font-size:11px;font-weight:750}
+.fit-label.partial{background:#eaf3f2;color:#19665e}
+.fit-label.context{background:#fff1db;color:#966321}
+.fit-label.no-fit{background:#eef1f4;color:#657485}
+.comparison-alert{border-left:3px solid #c99b55;background:#fff8ec;border-radius:0 8px 8px 0;font-size:12px;color:#805c31;padding:9px 12px;margin-top:10px}
+.country-source-group{border:1px solid var(--line);border-radius:10px;margin-top:8px;padding:11px 13px;background:#fcfefe}
+.country-source-group .benchmark{box-shadow:none}
+.country-source-group summary{padding:2px 0}
+@media(max-width:750px){.table-scroll{margin-left:-2px;margin-right:-2px}.decision-header{flex-wrap:wrap}}
+@media print{.manual-rate-details,.country-source-group,.market-country-picker{display:block!important}.table-scroll{overflow:visible}.market-comparison{min-width:0}}
+
+/* Clear separation of reference data and financial decisions */
+.product-nav{display:grid;grid-template-columns:minmax(230px,.77fr) minmax(390px,1.5fr);gap:12px;margin-bottom:18px;align-items:stretch}
+.nav-zone{background:#fff;border:1px solid var(--line);border-radius:15px;padding:12px;min-width:0;box-shadow:var(--shadow)}
+.benchmark-zone{border-top:4px solid #138777}
+.calculators-zone{border-top:4px solid #6c7d9d}
+.nav-zone-label{display:flex;align-items:center;gap:10px;margin:0 2px 11px;color:var(--navy)}
+.nav-zone-label strong{display:block;font-size:14px;font-weight:800;letter-spacing:-.1px}
+.nav-zone-label small{display:block;color:var(--muted);font-size:11px;line-height:1.35;margin-top:2px}
+.zone-icon{display:inline-flex;width:29px;height:29px;border-radius:8px;background:#e7f5f0;color:#116856;align-items:center;justify-content:center;font-weight:800}
+.calculators-zone .zone-icon{background:#edf1f8;color:#435a79}
+.nav-zone .nav{margin:0;padding:4px;border-radius:10px;background:#f0f3f6;flex-wrap:nowrap;gap:4px;overflow:visible}
+.nav-zone .nav button{min-width:0;flex:1 1 0;font-size:12px;padding:10px 9px;line-height:1.35;white-space:normal}
+.nav-zone .nav button.active{color:#115f57}
+.nav-zone .nav button:focus-visible{outline:2px solid #1c8677;outline-offset:2px}
+@media(max-width:900px){.product-nav{grid-template-columns:1fr}.nav-zone .nav button{font-size:13px}}
+@media(max-width:540px){.calculators-zone .nav{display:grid;grid-template-columns:1fr}.nav-zone .nav button{text-align:left}}
+@media print{.product-nav{display:none!important}}

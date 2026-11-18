@@ -1,7 +1,7 @@
 {
-  "version": "0.7",
+  "version": "0.8",
   "referenceCheckedOn": "2026-11-18",
-  "description": "Manually reviewed public salary reference figures. Not automatically updated; not a licensed feed. No confidential information.",
+  "description": "Curated, attributed source snapshots; not live pay or full employer cost. Each record retains original country, pay basis, grade and sample. Last checked 2026-11-18; automatic updating is not enabled for pay surveys.",
   "records": [
     {
       "country": "armenia",
@@ -21,7 +21,8 @@
       "publishedDate": "2026-11-09",
       "checkedDate": "2026-11-18",
       "note": "Senior only; self-reported and modeled net pay. No Mid-level DevOps salary published with sufficient sample. Not gross employer cost.",
-      "confidence": "limited"
+      "confidence": "limited",
+      "roleScope": "exact"
     },
     {
       "country": "georgia",
@@ -41,7 +42,9 @@
       "publishedDate": null,
       "checkedDate": "2026-11-18",
       "note": "All experience levels; 6 self-reported salaries. Source says it cannot verify accuracy. Net/gross not defined on this page.",
-      "confidence": "small_sample"
+      "confidence": "small_sample",
+      "roleScope": "exact",
+      "notesOnPay": "Net/gross unspecified. Use only as non-comparable context."
     },
     {
       "country": "slovakia",
@@ -61,7 +64,93 @@
       "publishedDate": null,
       "checkedDate": "2026-11-18",
       "note": "All experience levels; respondent survey, not a Mid-level estimate. A paid licensed API is available separately.",
-      "confidence": "all_grade"
+      "confidence": "all_grade",
+      "roleScope": "exact",
+      "notesOnPay": "Gross; all-grade, not DevOps Middle."
+    },
+    {
+      "country": "armenia",
+      "role": "backend-engineer",
+      "grade": "mid",
+      "roleScope": "exact",
+      "source": "ITA Jobs / IT Association of Armenia",
+      "url": "https://jobs.ita.am/roles/backend-engineer",
+      "type": "salary_survey",
+      "currency": "USD",
+      "period": "month",
+      "basis": "net",
+      "low": 800,
+      "median": 1450,
+      "high": 2450,
+      "rangeLabel": "Middle 50% of reported salaries",
+      "sample": 14,
+      "publishedDate": "2026-11-09",
+      "checkedDate": "2026-11-18",
+      "note": "Backend Engineer Middle cohort; reported or modelled net pay, not employer cost.",
+      "confidence": "limited"
+    },
+    {
+      "country": "armenia",
+      "role": "backend-engineer",
+      "grade": "senior",
+      "roleScope": "exact",
+      "source": "ITA Jobs / IT Association of Armenia",
+      "url": "https://jobs.ita.am/roles/backend-engineer",
+      "type": "salary_survey",
+      "currency": "USD",
+      "period": "month",
+      "basis": "net",
+      "low": 2750,
+      "median": 3550,
+      "high": 4350,
+      "rangeLabel": "Middle 50% of reported salaries",
+      "sample": 54,
+      "publishedDate": "2026-11-09",
+      "checkedDate": "2026-11-18",
+      "note": "Backend Engineer Senior cohort; reported or modelled net pay, not employer cost.",
+      "confidence": "limited"
+    },
+    {
+      "country": "armenia",
+      "role": "software-engineer",
+      "grade": "mid",
+      "roleScope": "family",
+      "source": "ITA Jobs / IT Association of Armenia",
+      "url": "https://jobs.ita.am/roles/software-engineer",
+      "type": "salary_survey",
+      "currency": "USD",
+      "period": "month",
+      "basis": "net",
+      "low": 900,
+      "median": 1500,
+      "high": 2450,
+      "rangeLabel": "Middle 50% of reported salaries",
+      "sample": 55,
+      "publishedDate": "2026-11-16",
+      "checkedDate": "2026-11-18",
+      "note": "Software-group pooled figures. They do NOT describe Software Engineer alone, despite matching seniority.",
+      "confidence": "role_family_context"
+    },
+    {
+      "country": "armenia",
+      "role": "software-engineer",
+      "grade": "senior",
+      "roleScope": "family",
+      "source": "ITA Jobs / IT Association of Armenia",
+      "url": "https://jobs.ita.am/roles/software-engineer",
+      "type": "salary_survey",
+      "currency": "USD",
+      "period": "month",
+      "basis": "net",
+      "low": 2600,
+      "median": 3550,
+      "high": 4750,
+      "rangeLabel": "Middle 50% of reported salaries",
+      "sample": 160,
+      "publishedDate": "2026-11-16",
+      "checkedDate": "2026-11-18",
+      "note": "Software-group pooled figures. Not role-specific; context only.",
+      "confidence": "role_family_context"
     }
   ]
 }

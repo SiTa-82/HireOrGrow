@@ -1,61 +1,43 @@
-# HireOrGrow 0.7 — Priority Local Markets
+# HireOrGrow v0.8.1 — Market Intelligence + Decision Calculators
 
-**Hire smart. Grow smarter.**  
-International talent cost & workforce decision prototype.
+**Site:** https://sita-82.github.io/HireOrGrow/  
+**GitHub:** https://github.com/SiTa-82/HireOrGrow
 
-## What's new in 0.7
+## Two distinct product areas
 
-- **Priority markets:** Armenia, Georgia, Slovakia, selected by default in `Global Market Benchmark`.
-- **Armenia (ITA Jobs):** dated, manually reviewed public DevOps salary survey. **Senior / net**, not a Mid-level estimate.
-- **Georgia (Fairpay):** dated, manually reviewed DevOps self-reported salaries. **All grades / net-gross unspecified / small sample**.
-- **Slovakia (Platy.sk):** dated, manually reviewed DevOps salary survey. **All grades / gross**.
-- **Georgia (findjobs.ge):** a *scheduled* GitHub Actions collector for publicly crawlable, pay-disclosing Georgian job ads. Ads are displayed individually, not mixed with survey salaries. A role-level median is only produced when at least eight local listings disclose usable **monthly GEL** salary. **No grade-specific median** is inferred.
-- `Internal rate`: manual, in-memory, excluded from third-party requests. No uploaded employee lists or company rate cards.
+- **Market Intelligence (reference-only).** Public, sourced salary snapshots shown by role, level and location; pay basis, sample size, update/check dates and source links. This does not decide whether to hire or promote.
+- **Decision Calculators.** Three independent financial tools: **External vs. internal hire**, **Retain vs. replace**, and **Promote vs. reskill**. Figures are entered manually; no salary report is silently injected into financial decisions.
 
-**This is a prototype with source attribution, not a licensed compensation platform or an HR decision system.** There are no claims that all three markets have automated live salary surveys. **Only the Georgian vacancies are eligible for scheduled automatic updates.** Dated reference data require manual re-verification or appropriately licensed feeds.
+## Location scope
 
-## Sources and caveats
+Only **nine countries**: Armenia, Georgia, Slovakia, Kazakhstan, Portugal, Finland, Netherlands, United States and India. Presets:
 
-| Country | Source | Data in app | Accuracy caveat |
-|---|---|---|---|
-| Armenia | [ITA Jobs](https://jobs.ita.am/roles/devops-engineer) | Senior DevOps, USD **net/month**, last source update 2026-11-09 | 10 submissions; no published Mid-level estimate |
-| Georgia | [Fairpay](https://www.fairpay.ge/positions/devops-engineer) | DevOps across **all grades**, GEL/month | Six self-reports; pay basis not established; no licensed API |
-| Georgia | [findjobs.ge crawler JSON](https://findjobs.ge/crawl/en/) | Public active Georgian ads with job title, location, salary and link | Ads with no salary omitted; hourly/daily and global remote ads excluded; net/gross unknown |
-| Slovakia | [Platy.sk](https://www.platy.sk/en/platy/information-technology/devops-engineer) | DevOps, EUR **gross/month**, central 80% across grades | Not a Mid-level estimate; API access is [commercial](https://www.paylab.com/paylab-api) |
+| Preset | Selection |
+|---|---|
+| Priority 3 | Armenia, Georgia, Slovakia |
+| EU | Portugal, Finland, Netherlands, Slovakia |
+| US | United States |
+| India | India |
+| Global | All nine countries |
+| Custom / Clear | Manual country choices / none |
 
-Original publication date, source verification date, source link, currency, basis, population and sample size are included in the UI where known. Public reference numbers are manually checked as of **2026-11-18**, not live; they can grow stale.
+EU is a selection of the four supported EU states, **not a Europe-wide average**. Global selects locations, **not a global salary average**.
 
-## Installation / publishing (important)
+## Salary data: coverage is limited
 
-1. Download the 0.7 ZIP, unzip it locally.
-2. Upload the **contents** to the root of [`SiTa-82/HireOrGrow`](https://github.com/SiTa-82/HireOrGrow) using **Add file → Upload files**. Confirm `index.html`, `app.js`, `market.js`, `styles.css`, `data/`, `scripts/` and `.github/workflows/market-data.yml` are present at their correct paths. Commit changes.
-3. **Switch GitHub Pages from the old branch deployment to GitHub Actions:** **Settings → Pages → Build and deployment → Source → GitHub Actions**. Otherwise the scheduled collector cannot deploy the generated JSON. The default `main` branch is still used for source code, but Pages is deployed by workflow artifact.
-4. Open **Actions → Publish HireOrGrow with updated Georgia vacancy data → Run workflow → main → Run workflow** to trigger the initial collection/deployment. Subsequent runs occur automatically at **07:23 UTC on weekdays** and when `main` changes. Check the **Actions** logs for errors.
-5. Open [HireOrGrow on GitHub Pages](https://sita-82.github.io/HireOrGrow/) and go to **Global Market Benchmark → Priority 3**. Verify the sources and the Georgian feed status.
+The **included, dated references** cover selected roles in Armenia (ITA Jobs), Georgia (Fairpay) and Slovakia (Platy.sk); they are not guaranteed to match a requested grade. Other selected markets display **No documented range** until a suitable, licensed source is connected. No salary number is inferred or invented. The Georgia job-vacancy collector currently cannot retrieve permitted data because the provider's robots.txt denies our crawler. No bypass is attempted. Historical source snapshots can be displayed despite failed collection.
 
-If the Georgian source is unavailable or robots.txt disallows collection, the collector publishes an explicit `unavailable` status, **not invented salary numbers**. The survey snapshots still load. The browser's **Reload published market data** button reloads JSON that GitHub has published; it does **not** run GitHub Actions instantly.
+The only network calls made by the browser are same-origin JSON resources and the external Frankfurter FX service (currency codes only). `Internal rate` is stored in page memory; do not enter confidential or NDA-protected figures into this public demo. There is no authentication or corporate security certification.
 
-## What GitHub Actions does
+## GitHub installation
 
-`market-data.yml` executes `scripts/update_georgia.py` without any credentials, collects the open researcher JSON at `findjobs.ge` (observing robots.txt and rate limits), validates salary period/currency and occupation, writes `data/georgia_live.json`, then publishes a static GitHub Pages artifact. The workflow does **not** commit generated data to git. Raw listings, applicant information and private company data are not stored. The published file contains only job titles, employer names, approximate pay, dates, grades, cities and links.
+1. Download and unzip the project. Upload **files and folders** to the root of `SiTa-82/HireOrGrow`, replacing previous versions; preserve `.github/workflows`, `data`, `scripts` and `tests`.
+2. In Settings → Pages select **GitHub Actions**. This project includes a deploy workflow at `.github/workflows/market-data.yml`.
+3. Check Actions for the publish job. A successful deployment does **not** imply a successful live salary collection; check the job summary for the data status.
+4. Verify the site with demo inputs. For local checks, run `python -m http.server 8000` in the project folder and open `http://localhost:8000`.
 
-## Testing
+No API keys or user data are required. See `SECURITY.md`, `TESTING.md` and `CHANGELOG.md`.
 
-```bash
-python -m pip install -r requirements-dev.txt
-python -m playwright install chromium
-python tests/test_source_pipeline.py
-python tests/test_browser.py
-```
+## Country selection visibility
 
-The tests use **fictional job listings and mocked FX data**, not an actual source connection. For live validation check the first manual GitHub Actions run, the deployed `/data/georgia_live.json`, and compare two sample job links against the source. The application's financial calculators remain available.
-
-## Security
-
-- All published source files and GitHub Pages HTML are **public**.
-- Do **not** use internal salaries, NDA rate cards, personal employee information or client data in this demo.
-- `Internal rate` stays in page memory; copying, printing and browser extensions can expose data, so use fictional amounts only.
-- Only the optional FX fetch sends currency codes to `api.frankfurter.dev`; salary source JSON is served by the same GitHub Pages origin.
-- No user database, corporate SSO, encryption-at-rest guarantee, audit trail or production security approval.
-
-See `SECURITY.md` and `TESTING.md`.
+All source details and country-specific vacancy panels are filtered by selected market checkboxes. For example, Armenia alone shows no Georgia vacancy card.

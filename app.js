@@ -10,14 +10,15 @@ const set = (id, value) => { el(id).textContent = String(value); };
 const pct = (x,max) => (max > 0 ? Math.max(0,Math.min(100,100*x/max)) : 0)+'%';
 const safe = value => String(value).replace(/[&<>"']/g,c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const MARKETS = {
-  'armenia': {name:'Armenia',region:'other'},'georgia':{name:'Georgia',region:'other'},
-  'portugal':{name:'Portugal',region:'eu'},'kazakhstan':{name:'Kazakhstan',region:'other'},
-  'finland':{name:'Finland',region:'eu'},'slovakia':{name:'Slovakia',region:'eu'},
-  'germany':{name:'Germany',region:'eu'},'netherlands':{name:'Netherlands',region:'eu'},
-  'poland':{name:'Poland',region:'eu'},'spain':{name:'Spain',region:'eu'},
-  'greece':{name:'Greece',region:'eu'},'united-states':{name:'United States',region:'us'},
-  'united-kingdom':{name:'United Kingdom',region:'other'},
-  'singapore':{name:'Singapore',region:'other'},'india':{name:'India',region:'other'}
+  'armenia': {name:'Armenia',region:'other'},
+  'georgia': {name:'Georgia',region:'other'},
+  'slovakia': {name:'Slovakia',region:'eu'},
+  'kazakhstan': {name:'Kazakhstan',region:'other'},
+  'portugal': {name:'Portugal',region:'eu'},
+  'finland': {name:'Finland',region:'eu'},
+  'netherlands': {name:'Netherlands',region:'eu'},
+  'united-states': {name:'United States',region:'us'},
+  'india': {name:'India',region:'other'}
 };
 const scopeNames = {'eu':'European Union (EU)','global':'Global / cross-border','united-states':'United States (US)'};
 const selectedScope = () => scopeNames[el('scenario-location').value] || MARKETS[el('scenario-location').value]?.name || 'Selected market';

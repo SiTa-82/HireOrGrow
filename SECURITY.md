@@ -1,4 +1,4 @@
-# Security and privacy — HireOrGrow 0.7
+# Security and privacy — HireOrGrow 0.8
 
 This GitHub Pages application is an experimental PUBLIC browser demo. Do not use it with NDA-protected rates, individual employee compensation, personal data, real internal HR plans, or company rate cards. It has not undergone independent security assessment or penetration testing.
 
@@ -6,7 +6,7 @@ This GitHub Pages application is an experimental PUBLIC browser demo. Do not use
 
 - Browser: HTTPS GET to **same-origin** `data/salary_references.json` (manually reviewed, public) and `data/georgia_live.json` (public, generated in GitHub Actions).
 - Optional browser FX: GET to `https://api.frankfurter.dev/v2/rates?base=USD`, transmitting currency codes and network metadata only.
-- GitHub Actions collector: GET requests to the crawler-supported **public** `findjobs.ge` listing JSON. Uses a named User-Agent, checks robots.txt, and reads approximately once every weekday. It publishes only source-visible vacancy data after validation. No internal rate information is available to this runner.
+- GitHub Actions deploys the public snapshots. The Georgia source denied automated crawler access through robots.txt. Scheduled collection is **disabled** until a permitted API or written authorization is available. No internal rate information is sent to the workflow.
 - Manual `Internal rate` is stored in the page's JavaScript memory for the current tab. It is not sent in these requests or persisted in localStorage, cookies or a database.
 - Copy/Print intentionally export any manually entered amount. Browser extensions, compromised devices and other users of the device may also observe it.
 

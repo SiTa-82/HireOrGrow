@@ -1,9 +1,11 @@
 {
-  "version": "0.7",
+  "version": "0.8",
   "provider": "findjobs.ge",
   "sourceUrl": "https://findjobs.ge/crawl/en/",
   "generatedAt": null,
-  "status": "not_collected",
-  "note": "Run the Market Data workflow to collect public job ads. No live market salary estimate is supplied by this seed file.",
-  "roles": {}
+  "status": "blocked",
+  "note": "Verified in GitHub Actions logs: robots.txt did not grant the crawler access. No live listings are presented.",
+  "roles": {},
+  "lastAttemptAt": "2026-11-18",
+  "errorType": "PermissionError"
 }

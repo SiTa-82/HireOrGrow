@@ -20,7 +20,7 @@ from pathlib import Path
 DOMAIN='https://findjobs.ge'
 PAGES=DOMAIN+'/crawl/vacancies/en/{page}.json'
 ROBOTS=DOMAIN+'/robots.txt'
-AGENT='HireOrGrowResearchBot/0.7 (+https://github.com/SiTa-82/HireOrGrow)'
+AGENT='HireOrGrowResearchBot/0.8 (+https://github.com/SiTa-82/HireOrGrow)'
 OUT=Path(__file__).resolve().parents[1]/'data'/'georgia_live.json'
 MAX_PAGES=60
 ROLE_PATTERNS={
@@ -95,7 +95,7 @@ def compute(pages):
    'verifiedMedian':round(statistics.median(midpoints)) if valid else None,
    'verifiedMedianCount':len(midpoints) if valid else 0,
    'vacancies':sorted(jobs,key=lambda x:x['postedAt'],reverse=True)[:50]}
- return {'version':'0.7','provider':'findjobs.ge','sourceUrl':DOMAIN+'/crawl/en/',
+ return {'version':'0.8','provider':'findjobs.ge','sourceUrl':DOMAIN+'/crawl/en/',
   'generatedAt':now_utc(),'status':'ok','totalListingsScanned':total,
   'note':'Open vacancies only; source salary basis gross/net unknown; no grade-specific market median.',
   'roles':out}
@@ -136,11 +136,12 @@ def main():
   result=compute(pages)
  except Exception as exc:
   # Fail closed: no made-up live figures. Public salary references remain usable.
-  result={'version':'0.7','provider':'findjobs.ge','sourceUrl':DOMAIN+'/crawl/en/',
-          'generatedAt':None,'lastAttemptAt':now_utc(),'status':'unavailable',
+  result={'version':'0.8','provider':'findjobs.ge','sourceUrl':DOMAIN+'/crawl/en/',
+          'generatedAt':None,'lastAttemptAt':now_utc(),'status':'blocked' if isinstance(exc,PermissionError) else 'unavailable',
           'note':'Scheduled collection failed; no live vacancy median is displayed.',
           'errorType':type(exc).__name__, 'roles':{}}
   logging.error('Collection failed: %s',exc)
+  if isinstance(exc,PermissionError):print('::warning title=Source access denied::Respecting robots.txt; no Georgia vacancy data collected.')
  opts.output.parent.mkdir(parents=True,exist_ok=True)
  opts.output.write_text(json.dumps(result,indent=2,ensure_ascii=False)+'\n',encoding='utf8')
  print('Georgia snapshot:',result['status'],'roles:',','.join(result['roles']))
