@@ -2,18 +2,57 @@
 // All market/salary source payloads are public, pre-processed datasets.
 // Manual Internal rate never enters a network request. Only currency codes go to Frankfurter.
 const MARKET_ROLES = {
- 'devops-engineer':'DevOps Engineer', 'software-engineer':'Software Engineer', 'backend-engineer':'Backend Engineer',
- 'cloud-architect':'Cloud Architect', 'data-scientist':'Data Scientist',
- 'site-reliability-engineer':'Site Reliability Engineer'
+ "algorithm-developer": "Algorithm Developer",
+ "algorithm-engineer": "Algorithm Engineer",
+ "android-developer": "Android Developer",
+ "backend-engineer": "Backend Engineer",
+ "bi-analyst": "BI Analyst",
+ "bi-developer": "BI Developer",
+ "bioinformatics-analyst": "Bioinformatics Analyst",
+ "bioinformatics-engineer": "Bioinformatics Engineer",
+ "bioinformatics-scientist": "Bioinformatics Scientist",
+ "business-analyst": "Business Analyst",
+ "cloud-architect": "Cloud Architect",
+ "cloud-engineer": "Cloud Engineer",
+ "cloud-support-engineer": "Cloud Support Engineer",
+ "computational-biologist": "Computational Biologist",
+ "data-analyst": "Data Analyst",
+ "data-architect": "Data Architect",
+ "data-engineer": "Data Engineer",
+ "data-platform-engineer": "Data Platform Engineer",
+ "data-scientist": "Data Scientist",
+ "devops-engineer": "DevOps Engineer",
+ "etl-developer": "ETL Developer",
+ "frontend-developer": "Frontend Developer",
+ "full-stack-developer": "Full Stack Developer",
+ "go-developer": "Go Developer",
+ "hpc-engineer": "High Performance Computing (HPC) Engineer",
+ "hpc-systems-administrator": "HPC Systems Administrator",
+ "ios-developer": "iOS Developer",
+ "java-developer": "Java Developer",
+ "javascript-developer": "JavaScript Developer",
+ "machine-learning-engineer": "Machine Learning Engineer",
+ "mlops-engineer": "MLOps Engineer",
+ "mobile-developer": "Mobile Developer",
+ "performance-engineer": "Performance Engineer",
+ "platform-engineer": "Platform Engineer",
+ "python-developer": "Python Developer",
+ "qa-automation-engineer": "QA Automation Engineer",
+ "qa-engineer": "QA Engineer",
+ "site-reliability-engineer": "Site Reliability Engineer (SRE)",
+ "software-engineer": "Software Engineer",
+ "solution-architect": "Solution Architect",
+ "systems-analyst": "Systems Analyst",
+ "technical-business-analyst": "Technical Business Analyst",
+ "technical-support-engineer": "Technical Support Engineer"
 };
 const sourceHosts=new Set(['jobs.ita.am','www.fairpay.ge','findjobs.ge','www.platy.sk','www.paylab.com','frankfurter.dev']);
-const priorityMarkets=['armenia','georgia','slovakia'];
 const allMarkets=Object.keys(MARKETS);
-const marketPresets={priority:priorityMarkets,eu:allMarkets.filter(x=>MARKETS[x].region==='eu'),us:['united-states'],india:['india'],global:allMarkets};
+const marketPresets={eu:allMarkets.filter(x=>MARKETS[x].region==='eu'),us:['united-states'],global:allMarkets};
 const selectedMarkets=()=>Array.from(document.querySelectorAll('.m-country:checked')).map(x=>x.value);
-const SOURCE_FILES={refs:'./data/salary_references.json',jobs:'./data/georgia_live.json'};
+const SOURCE_FILES={refs:'./data/salary_references.json?v=0.9.0',jobs:'./data/georgia_live.json?v=0.9.0'};
 let referenceRecords=[], georgiaFeed={status:'not_collected',roles:{},generatedAt:null};
-let marketError=[],marketBusy=false,lastLoad=0,marketOpened=false,fxRates={USD:1},fxDate=null;
+let marketError=[],marketBusy=false,lastLoad=0,marketOpened=false,referenceLoaded=false,fxRates={USD:1},fxDates={},fxDate=null;
 const showDate=raw=>raw?String(raw).slice(0,10):'Not supplied';
 function marketLink(raw,label){
  try { const u=new URL(raw);if(u.protocol!=='https:' || !sourceHosts.has(u.hostname))return safe(label);
@@ -44,14 +83,39 @@ async function updateFx(){
     {method:'GET',signal:c.signal,credentials:'omit',cache:'no-store',referrerPolicy:'no-referrer'});
    if(!response.ok)throw Error('FX API unavailable');
    const rows=await response.json(); if(!Array.isArray(rows))throw Error('Invalid FX response');
-   const rates={USD:1};let date=null;
+   const rates={USD:1},rateDates={};let latestDate=null;
    for(const r of rows){const cc=String(r.quote||'').toUpperCase(),v=Number(r.rate);
-    if(/^[A-Z]{3}$/.test(cc)&&Number.isFinite(v)&&v>0)rates[cc]=v;
-    if(!date&&r.date)date=showDate(r.date);
+    if(/^[A-Z]{3}$/.test(cc)&&Number.isFinite(v)&&v>0){
+     rates[cc]=v;
+     if(r.date){rateDates[cc]=showDate(r.date);
+      if(!latestDate||rateDates[cc]>latestDate)latestDate=rateDates[cc];}
+    }
    }
-   if(!rates.EUR)throw Error('EUR missing from FX response');fxRates=rates;fxDate=date;
+   // Each FX quote may have its own observation date. Never assign a generic
+   // EUR date to a GEL conversion, and never invent a missing FX rate.
+   if(Object.keys(rates).length<2)throw Error('No FX quotes returned');
+   fxRates=rates;fxDates=rateDates;fxDate=latestDate;
   }finally{clearTimeout(timer)}
- }catch(_){fxRates={USD:1};fxDate=null}
+ }catch(_){fxRates={USD:1};fxDates={};fxDate=null}
+}
+function marketConversion(r){
+ const target=el('m-reportcur').value||'USD';
+ const base=r.currency;
+ const didConvert=base!==target;
+ const low=convertMoney(r.low,base,target);
+ const high=convertMoney(r.high,base,target);
+ const median=r.median===null||r.median===undefined?null:convertMoney(r.median,base,target);
+ const success=Number.isFinite(low)&&Number.isFinite(high);
+ const original=displaySalary(r);
+ const originalRange=formatMoney(r.low,base)+' – '+formatMoney(r.high,base);
+ const dates=[base,target].filter(c=>c!=='USD').map(c=>fxDates[c]).filter(Boolean);
+ const distinctDates=[...new Set(dates)];
+ const rateDate=distinctDates.length?distinctDates.join(' / '):'not supplied';
+ const convertedRange=success?formatMoney(low,target)+' – '+formatMoney(high,target):originalRange;
+ const conversionNote=!didConvert?`Source already in ${target} · no currency conversion`:
+  success?`Automatically converted to ${target} using Frankfurter FX · rate date ${rateDate}`:
+  `FX conversion to ${target} unavailable · showing original ${base} amounts`;
+ return {target,success,didConvert,low,high,median,original,convertedRange,conversionNote,rateDate};
 }
 function displaySalary(r){
  const low=formatMoney(r.low,r.currency),hi=formatMoney(r.high,r.currency);
@@ -66,17 +130,16 @@ function renderReferenceCard(r,selectedGrade){
  const header=!roleMatched?'Job-family context · not role-specific':!isMatch?'Context only · level mismatch':r.basis==='gross'?'Role + level match · gross':'Role + level match · '+String(r.basis).toUpperCase();
  const origin=`${safe(r.source)} · ${marketLink(r.url,'Source page')} · checked: ${safe(showDate(r.checkedDate))}`;
  const details=`${safe(r.rangeLabel)} · ${safe(level)} · ${safe(r.basis.toUpperCase())} · ${safe(r.currency)} per ${safe(r.period)}${Number.isFinite(r.sample)?' · n='+safe(r.sample):''}`;
+ const cv=marketConversion(r);
  const annualFactor=r.period==='month'?12:1;
- const reportcur=el('m-reportcur').value;
- const convertedLow=convertMoney(r.low*annualFactor,r.currency,reportcur),convertedHi=convertMoney(r.high*annualFactor,r.currency,reportcur);
- const converted=(convertedLow===null||convertedHi===null)?'Conversion unavailable for the requested currency.' :
-  `Annualized indicative amount: ${formatMoney(convertedLow,reportcur)} – ${formatMoney(convertedHi,reportcur)} / year${fxDate?' (FX '+safe(fxDate)+')':''}.`;
+ const annualized=cv.success?`Indicative annualized amount in ${cv.target}: ${formatMoney(cv.low*annualFactor,cv.target)} – ${formatMoney(cv.high*annualFactor,cv.target)} / year. `:'';
+ const converted=`${cv.conversionNote}. ${annualized}Currency conversion does not change NET/GROSS pay basis.`;
  const overheadRaw=el('m-burden').value.trim();
  const overheadPercent=overheadRaw===''?null:Number(overheadRaw);
  const overhead=(r.basis==='gross' && overheadPercent!==null && Number.isFinite(overheadPercent) && overheadPercent>=0 && overheadPercent<=250)?
   `<div class="subtext">Illustrative employer overhead +${safe(overheadPercent.toFixed(1))}% (user assumption, NOT a country tax calculation): ${safe(formatMoney(r.low*(1+overheadPercent/100),r.currency))} – ${safe(formatMoney(r.high*(1+overheadPercent/100),r.currency))} / ${safe(r.period)}.</div>` : '';
  return `<article class="benchmark reference" data-source-country="${safe(r.country)}"><div class="benchmark-top"><strong>${safe(r.source)}</strong><span class="flag ${verified?'api':'uncertain'}">${safe(header)}</span></div>`+
- `<div class="salary">${safe(displaySalary(r))} / ${safe(r.period)}</div><div class="crumb">${details}</div>`+
+ `<div class="salary">${safe(cv.convertedRange)} / ${safe(r.period)}</div><div class="crumb">Original source: ${safe(cv.original)} / ${safe(r.period)} · ${details}</div>`+
  `<div class="subtext">${safe(converted)}</div>${overhead}<div class="sourcebox"><div class="src">${origin}</div>`+
  `<div class="src">Last source update: ${safe(showDate(r.publishedDate))} · Survey method: ${safe(r.type)}.</div>`+
  `<p class="marketnote">${safe(r.note)}</p></div></article>`;
@@ -97,7 +160,16 @@ function renderGeorgiaJobs(role,grade){
  const sample=obj.sampleCount||list.length;
  const summary=`<div class="marketnote">Collected ${safe(showDate(georgiaFeed.generatedAt))} · ${sample} salary-disclosing local ads for this role, all levels. ${obj.verifiedMedian&&obj.verifiedMedianCount>=8?'Median of advertised monthly pay midpoints from at least eight listings: '+formatMoney(obj.verifiedMedian,'GEL')+'. ':'Sample too small to publish a reliable role-level median. '}Pay basis (gross/net) is not specified by this job-board data.</div>`;
  const shown=(appropriate.length?appropriate:list).slice(0,6);
- const lines=shown.length?shown.map(x=>`<div class="sc-row"><span>${marketLink(x.url,x.title)}<small class="crumb">${safe(x.company||'Employer not shown')} · ${safe(x.city||'Georgia')} · ${safe(x.grade==='unspecified'?'grade not stated':x.grade)}</small></span><b>${safe(formatMoney(x.min,'GEL'))} – ${safe(formatMoney(x.max,'GEL'))} / mo</b></div>`).join(''):'<p class="marketnote">No ads disclose a usable monthly salary for this grade.</p>';
+ const lines=shown.length?shown.map(x=>{
+  const target=el('m-reportcur').value||'USD';
+  const a=convertMoney(x.min,'GEL',target),b=convertMoney(x.max,'GEL',target);
+  const converted=Number.isFinite(a)&&Number.isFinite(b);
+  const primary=converted?`${formatMoney(a,target)} – ${formatMoney(b,target)}`:`${formatMoney(x.min,'GEL')} – ${formatMoney(x.max,'GEL')}`;
+  const original=`${formatMoney(x.min,'GEL')} – ${formatMoney(x.max,'GEL')}`;
+  const date=fxDates.GEL||'not supplied';
+  const note=target==='GEL'?'Original GEL':converted?`Auto-converted to ${target} · Frankfurter FX ${date}`:`${target} FX unavailable · original GEL`;
+  return `<div class="sc-row"><span>${marketLink(x.url,x.title)}<small class="crumb">${safe(x.company||'Employer not shown')} · ${safe(x.city||'Georgia')} · ${safe(x.grade==='unspecified'?'grade not stated':x.grade)}</small></span><span class="job-salary"><b>${safe(primary)} / mo</b><small>${safe(note)}${converted&&target!=='GEL'?` · Original: ${safe(original)} / mo`:''}</small></span></div>`;
+ }).join(''):'<p class="marketnote">No ads disclose a usable monthly salary for this grade.</p>';
  const caveat=appropriate.length===0?'No grade-exact job ads found in this sample; other grades are displayed only for context.':`Grade-explicit ads: ${appropriate.length}; do not infer a grade median if fewer than eight.`;
  box.innerHTML=summary+`<div class="marketnote">${safe(caveat)}</div>`+lines;
  set('m-georgia-count',sample+' salary-posted ads');
@@ -107,24 +179,44 @@ function renderGeorgiaJobs(role,grade){
 // no ranking is attempted across NET/GROSS/unknown-basis records.
 function renderComparisonTable(selected,reference,grade){
  const output=[];
+ if(!referenceLoaded){
+  el('m-compare-rows').innerHTML=`<div class="market-load-error" role="alert"><strong>Reference data not loaded</strong><p>The public salary JSON was unavailable. This is a loading error, not evidence that the market has no salary data.</p><button class="action" type="button" id="m-retry-data">Try loading again</button></div>`;
+  const retry=el('m-retry-data');if(retry)retry.addEventListener('click',loadMarkets);
+  return 0;
+ }
  for(const country of selected){
   const available=reference.filter(r=>r.country===country);
   const rank=r=>(r.roleScope==='family'?2:0)+(r.grade===grade?0:1);
   const best=available.slice().sort((a,b)=>rank(a)-rank(b))[0];
-  const countryText=safe(MARKETS[country].name);
+  const name=safe(MARKETS[country].name);
   if(!best){
-   output.push(`<tr><th scope="row">${countryText}</th><td class="muted-cell">No documented range</td><td><span class="fit-label no-fit">No coverage</span></td><td><span class="mini-muted">Not available</span></td></tr>`);
+   output.push(`<article class="market-mini-card"><div class="market-mini-head"><h4>${name}</h4><span class="fit-label no-fit">No documented range</span></div><p class="marketnote">No verified salary figure for this role and country in the current source library.</p></article>`);
    continue;
   }
   const exactRole=best.roleScope!=='family',exactLevel=best.grade===grade;
   const fullMatch=exactRole&&exactLevel;
-  const label=!exactRole?'Role family only':exactLevel?`Level matched · ${best.basis.toUpperCase()}`:'Different level / all grades';
+  const label=!exactRole?'Related occupation':exactLevel?`Level matched · ${best.basis.toUpperCase()}`:'Other / all levels';
   const state=!fullMatch?'context':'partial';
-  const salary=`${formatMoney(best.low,best.currency)}–${formatMoney(best.high,best.currency)}`;
-  const labelMedian=best.median===null?'':`<span class="mini-muted">Median ${safe(formatMoney(best.median,best.currency))}</span>`;
-  output.push(`<tr><th scope="row">${countryText}</th><td><strong>${safe(salary)} / ${best.period==='month'?'mo':'yr'}</strong><span class="mini-muted">${safe(best.basis.toUpperCase())} · ${safe(best.grade==='all'?'all levels':best.grade)}</span>${labelMedian}</td><td><span class="fit-label ${state}">${safe(label)}</span><span class="mini-muted">${best.sample?'n='+safe(best.sample):'Sample not published'}</span></td><td>${marketLink(best.url,best.source)}<span class="mini-muted">${best.publishedDate?'Source '+safe(showDate(best.publishedDate))+' · ':''}checked ${safe(showDate(best.checkedDate))}</span></td></tr>`);
+  const cv=marketConversion(best);
+  const extraMedian=best.median===null?'':`<span class="market-mini-median">Median ${safe(cv.median===null?formatMoney(best.median,best.currency):formatMoney(cv.median,cv.target))}</span>`;
+  const gradeLabel=best.grade==='all'?'All experience levels':best.grade==='mid'?'Mid-level':best.grade==='senior'?'Senior':'Junior';
+  const note=exactLevel?'':'This is context, not a salary estimate for the selected level.';
+  const title=cv.didConvert&&cv.success?`Published salary · auto-converted to ${cv.target}`:cv.success?`Published salary · ${cv.target}`:`Published salary · original ${best.currency}`;
+  const originalLine=cv.didConvert&&cv.success?`Original source: ${cv.original} / ${best.period}`:`Original source currency: ${best.currency}`;
+  const fxLink=cv.didConvert&&cv.success?` · <a href="https://frankfurter.dev/" target="_blank" rel="noopener noreferrer">Frankfurter FX ↗</a>`:'';
+  output.push(`<article class="market-mini-card" data-market="${safe(country)}">
+     <div class="market-mini-head"><h4>${name}</h4><span class="fit-label ${state}">${safe(label)}</span></div>
+     <div class="market-mini-caption">${safe(title)}</div>
+     <div class="market-mini-pay">${safe(cv.convertedRange)} <span>/ ${best.period==='month'?'month':'year'}</span></div>
+     ${extraMedian}
+     <div class="market-mini-origin">${safe(originalLine)}</div>
+     <div class="market-mini-fx${cv.didConvert&&!cv.success?' missing-fx':''}">${safe(cv.conversionNote)}${fxLink}</div>
+     <div class="market-mini-meta"><span>${safe(best.basis.toUpperCase())}</span><span>${safe(gradeLabel)}</span>${best.sample?`<span>Sample: ${safe(best.sample)}</span>`:''}</div>
+     ${note?`<p class="market-mini-warning">${note}</p>`:''}
+     <div class="market-mini-footer"><span class="market-mini-caption">Source · ${best.publishedDate?'published '+safe(showDate(best.publishedDate)):'publication date unknown'} · checked ${safe(showDate(best.checkedDate))}</span><div>${marketLink(best.url,best.source)}</div></div>
+   </article>`);
  }
- el('m-compare-rows').innerHTML=output.join('')||'<tr><td colspan="4">Select markets to compare.</td></tr>';
+ el('m-compare-rows').innerHTML=output.join('')||'<p class="marketnote">Select one or more countries to compare.</p>';
  const exactCountries=new Set(reference.filter(r=>r.roleScope!=='family'&&r.grade===grade).map(r=>r.country));
  return exactCountries.size;
 }
@@ -146,9 +238,9 @@ function renderMarket(){
  const gradeMatchCount=renderComparisonTable(selected,reference,grade);
  set('m-context',`${selected.length} selected markets · ${gradeMatchCount} role-and-level matches · surveys are dated snapshots`);
  set('m-locations',selected.length);set('m-comparable',gradeMatchCount);
- set('m-rate-date',fxDate?'FX · '+fxDate:'FX not available');
+ set('m-rate-date',fxDate?'Frankfurter FX · latest '+fxDate:'Live FX unavailable');
  set('m-internal',raw===null?'Not entered':formatMoney(raw,internalcur)+'/yr');
- let summary='Read the market table first: salary is shown in original currency and period; NET and GROSS are not interchangeable. A role-family or other-level source is context, not a matching salary quote. ';
+ let summary=`Market comparison is displayed in ${el('m-reportcur').value} where a Frankfurter FX rate is available; original salary and each FX observation date are shown on the cards. Currency conversion does not turn NET pay into GROSS or make different grades comparable. A role-family or other-level source is context, not a matching salary quote. `;
  if(raw===null)summary+='Optional manual Internal rate is not saved or sent to salary providers.';
  else if(el('m-rate-type').value==='billing')summary+='Internal input is a client billing rate, not a salary; comparison is disabled.';
  else{
@@ -184,15 +276,15 @@ function renderMarket(){
   if(selected.includes('georgia'))scopeCaveat.push('Georgia: Fairpay samples are small and do not state NET/GROSS; the separate vacancy feed is blocked by source access restrictions.');
   if(selected.includes('slovakia'))scopeCaveat.push('Slovakia: the Platy.sk DevOps figures are GROSS and include all seniority levels.');
   if(selected.some(c=>!['armenia','georgia','slovakia'].includes(c)))scopeCaveat.push('Some selected markets have no verified salary records for this role and level; no amount is inferred.');
-  scopeCaveat.push('Different pay bases and grades cannot be directly compared. The manual Internal rate is separate and never uploaded.');
+  scopeCaveat.push('Displayed currency is standardized only when a Frankfurter FX rate is available (rate date is shown); source values remain unchanged. Different pay bases and grades cannot be directly compared. The manual Internal rate is separate and never uploaded.');
  }
  set('m-interpretation', 'Interpretation: '+scopeCaveat.join(' '));
  const shownFeed=georgiaSelected?' · '+stamp:'';
  const relevantErrors=marketError.filter(x=>georgiaSelected||!x.toLowerCase().includes('georgia'));
  set('m-fetchstatus',marketBusy?'Loading site data…':`Public source snapshots: ${reference.length}${shownFeed} · FX ${fxDate||'unavailable'}${relevantErrors.length?' · '+relevantErrors.join('; '):''}`);
- const lines=[`HireOrGrow v0.8.1 · ${MARKET_ROLES[role]} · level ${grade}`,`Markets: ${selected.map(c=>MARKETS[c].name).join(', ')}`,
- `Report created: ${new Date().toISOString().slice(0,10)}`,`FX: Frankfurter ${fxDate||'unavailable'}`,`Internal rate: ${raw===null?'Not entered':formatMoney(raw,internalcur)+'/year (manual, fictional)'}`,summary];
- for(const r of reference)lines.push(`${MARKETS[r.country].name}: ${displaySalary(r)} per ${r.period}, ${r.basis}, grade ${r.grade}, scope ${r.roleScope||'exact'}, n=${r.sample||'unknown'}, ${r.source}, checked ${r.checkedDate}, updated ${r.publishedDate||'not specified'}, ${r.url}`);
+ const lines=[`HireOrGrow v0.9.0 · ${MARKET_ROLES[role]} · level ${grade}`,`Markets: ${selected.map(c=>MARKETS[c].name).join(', ')}`,
+ `Report created: ${new Date().toISOString().slice(0,10)}`,`Displayed currency: ${el('m-reportcur').value} · Frankfurter FX ${fxDate||'unavailable'}`,`Internal rate: ${raw===null?'Not entered':formatMoney(raw,internalcur)+'/year (manual, fictional)'}`,summary];
+ for(const r of reference){const cv=marketConversion(r);lines.push(`${MARKETS[r.country].name}: ${cv.convertedRange} per ${r.period} [${cv.conversionNote}], source original ${cv.original} ${r.currency} per ${r.period}, ${r.basis}, grade ${r.grade}, scope ${r.roleScope||'exact'}, n=${r.sample||'unknown'}, ${r.source}, checked ${r.checkedDate}, updated ${r.publishedDate||'not specified'}, ${r.url}`)}
  if(georgiaSelected)lines.push(`Georgia job feed: ${stamp}; ${georgiaFeed.sourceUrl||''}`);
  lines.push(`Disclaimer: Not an employer-total-cost estimate, not an automated HR recommendation. Do not use NDA data.`);
  marketReport=lines.join('\n');
@@ -201,8 +293,8 @@ async function loadMarkets(){
  const run=++lastLoad;marketBusy=true;marketError=[];renderMarket();
  const tasks=await Promise.allSettled([fetchData(SOURCE_FILES.refs),fetchData(SOURCE_FILES.jobs),updateFx()]);
  if(run!==lastLoad)return;
- if(tasks[0].status==='fulfilled'&&Array.isArray(tasks[0].value.records)){referenceRecords=tasks[0].value.records;}
- else{referenceRecords=[];marketError.push('Salary reference file unavailable')}
+ if(tasks[0].status==='fulfilled'&&Array.isArray(tasks[0].value.records)){referenceRecords=tasks[0].value.records;referenceLoaded=true;}
+ else{referenceRecords=[];referenceLoaded=false;marketError.push('Salary reference file unavailable')}
  if(tasks[1].status==='fulfilled'&&tasks[1].value&&typeof tasks[1].value.roles==='object'){georgiaFeed=tasks[1].value;}
  else{georgiaFeed={status:'unavailable',roles:{}};marketError.push('Georgia job feed file unavailable')}
  marketBusy=false;renderMarket();
@@ -210,12 +302,12 @@ async function loadMarkets(){
 function setMarketPreset(type){
  const wanted=new Set(marketPresets[type]||[]);
  if(type==='clear')wanted.clear();
- if(type!=='custom')document.querySelectorAll('.m-country').forEach(x=>{x.checked=wanted.has(x.value)});
+ document.querySelectorAll('.m-country').forEach(x=>{x.checked=wanted.has(x.value)});
  document.querySelectorAll('[data-preset]').forEach(b=>{const yes=b.dataset.preset===type;b.classList.toggle('active',yes);b.setAttribute('aria-pressed',String(yes))});
  renderMarket();
 }
 for(const b of document.querySelectorAll('[data-preset]'))b.addEventListener('click',()=>setMarketPreset(b.dataset.preset));
-for(const c of document.querySelectorAll('.m-country'))c.addEventListener('change',()=>setMarketPreset('custom'));
+for(const c of document.querySelectorAll('.m-country'))c.addEventListener('change',()=>{document.querySelectorAll('[data-preset]').forEach(b=>{b.classList.remove('active');b.setAttribute('aria-pressed','false')});renderMarket()});
 for(const id of ['m-role','m-grade','m-reportcur','m-burden','m-historical','m-home','m-history-cur','m-rate-basis','m-rate-type'])el(id).addEventListener('input',renderMarket);
 el('m-refresh').addEventListener('click',loadMarkets);
 el('tab-market').addEventListener('click',()=>{if(!marketOpened){marketOpened=true;loadMarkets()}});

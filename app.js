@@ -28,6 +28,53 @@ function updateScenarioLocation(){
   calculateHire(); calculateReplace(); calculateTalent();
 }
 let hireReport='',replacementReport='',talentReport='',marketReport='';
+const decisionModels = {};
+function renderDecisionOverview(){
+ const root=el('decision-chart');if(!root)return;
+ const groups=[decisionModels.hire,decisionModels.replace,decisionModels.talent].filter(Boolean);
+ root.innerHTML=groups.map(group=>{
+   const options=group.options;
+   const best=Math.min(...options.map(o=>o.cost));
+   const second=[...options].sort((a,b)=>a.cost-b.cost)[1]?.cost;
+   const winners=options.filter(o=>Math.abs(o.cost-best)<.005);
+   const tied=winners.length>1;
+   const maxVal=Math.max(1,...options.map(o=>Math.max(0,o.cost)));
+   const key=group.key;
+   const summary=tied?'Equal lowest modeled costs':`${winners[0].name} · ${money(best)}`;
+   const next= !tied && Number.isFinite(second)?`${money(Math.max(0,second-best))} below next alternative`:'No cost difference';
+   const bars=options.map(o=>{
+      const isLowest=Math.abs(o.cost-best)<.005;
+      const width=Math.max(0,Math.min(100,100*Math.max(o.cost,0)/maxVal));
+      const detail=o.detail?`<span class="decision-bar-detail">${safe(o.detail)}</span>`:'';
+      return `<div class="decision-bar-row" title="${safe(o.name)}: ${safe(money(o.cost))}">
+       <div class="decision-bar-label"><span>${safe(o.name)}${detail}</span><strong>${safe(money(o.cost))}</strong></div>
+       <div class="decision-bar-track"><div class="decision-bar-fill ${isLowest?'lowest':''}" style="width:${width.toFixed(2)}%"></div></div>
+       ${isLowest?'<span class="decision-lowest-tag">Lowest modeled cost</span>':''}
+      </div>`;
+   }).join('');
+   return `<article class="decision-chart-card" aria-label="${safe(group.title)} estimated costs">
+    <div class="decision-chart-head"><span class="decision-chart-icon">${safe(group.number)}</span><div><h3>${safe(group.title)}</h3><p>${safe(group.basis)}</p></div></div>
+    <div class="decision-chart-bars">${bars}</div>
+    <div class="decision-chart-summary"><b>${safe(summary)}</b><small>${safe(next)}</small></div>
+    <p class="decision-chart-note">${safe(group.note)}</p>
+    <button class="decision-chart-edit" data-edit="${safe(key)}" type="button">Edit assumptions ↗</button>
+   </article>`;
+ }).join('');
+ root.querySelectorAll('[data-edit]').forEach(btn=>btn.addEventListener('click',()=>{
+   const details=el(btn.dataset.edit+'-editor');
+   details.open=true;details.scrollIntoView({behavior:'smooth',block:'start'});
+ }));
+}
+function syncDecisionRole(source){
+ const roleId=source.value;
+ const roleText=source.selectedOptions[0]?.textContent.trim()||'DevOps Engineer';
+ el('decision-role').value=roleId;
+ el('m-role').value=roleId;
+ ['role','r-role','t-role'].forEach(id=>{el(id).value=roleText;});
+ calculateHire();calculateReplace();calculateTalent();
+ if(typeof renderMarket==='function')renderMarket();
+}
+
 function calculateHire(){
   const external=n('he-recruit')+n('he-onboard')+n('he-vacancy')+n('he-ramp');
   const internal=n('hi-recruit')+n('hi-onboard')+n('hi-vacancy')+n('hi-ramp')+n('hi-backfill');
@@ -42,6 +89,7 @@ function calculateHire(){
    (external===internal?'Both scenarios have the same modeled cost.':`${winner} has ${money(diff)} lower modeled cost.`)+
    ` Time to start: external ${n('he-days')} days, internal ${n('hi-days')} days. Lead time is contextual and not charged again. Backfilling the internal candidate’s prior role is estimated at ${money(n('hi-backfill'))}. Annual salary and candidate readiness require separate analysis.`;
   set('hire-summary',narrative);
+  decisionModels.hire={key:'hire',number:'01',title:'External vs. internal hire',basis:'One-off cost to fill a position',note:`Time to start: external ${n('he-days')}d / internal ${n('hi-days')}d. Compensation after hire is excluded.`,options:[{name:'External hire',cost:external,detail:`${n('he-days')} days`},{name:'Internal transfer',cost:internal,detail:`${n('hi-days')} days`}]};renderDecisionOverview();
   hireReport='HireOrGrow — Cost to Fill\n'+narrative+'\nAssumptions entered by the user; this is not a hiring recommendation.';
 }
 function calculateReplace(){
@@ -61,6 +109,7 @@ function calculateReplace(){
     (diff===0?'Both are modeled at the same cost.':`Replacement is ${money(Math.abs(diff))} ${diff>0?'more':'less'} expensive.`)+
     ` Replacement includes ${money(salary)} of salary after ${vacancy} vacant months, ${money(n('r-recruit'))} recruitment, ${money(n('r-exit'))} severance, ${money(n('r-onboard'))} onboarding, and ${money(loss)} estimated productivity losses. Replacement cash outlay is ${money(cash)}. Finance must validate assumptions; assess legal and workforce implications separately.`;
   set('r-narrative',narrative);
+  decisionModels.replace={key:'replace',number:'02',title:'Retain vs. replace',basis:`Full modeled cost · ${months}-month horizon`,note:'Includes salary and estimated productivity loss. Does not establish grounds to terminate a person.',options:[{name:'Retain',cost:retain},{name:'Replace',cost:replace}]};renderDecisionOverview();
   replacementReport='HireOrGrow — Retain vs. Replace\n'+narrative+'\nScenario calculation only. Not an employee termination recommendation.';
 }
 function calculateTalent(){
@@ -91,15 +140,20 @@ function calculateTalent(){
  const role=el('t-role').value.trim()||'unspecified role';
  const narrative=`For ${role} in ${selectedScope()} over ${months} months: external hire ${money(rows[0].total)}, promotion ${money(rows[1].total)}, reskilling ${money(rows[2].total)}. Cash costs and estimated productivity losses are shown separately. The lowest cost does not establish candidate readiness.${notReady}`;
  set('t-narrative',narrative);
+ decisionModels.talent={key:'talent',number:'03',title:'Hire, promote or reskill',basis:`Incremental cost · ${months}-month horizon`,note:'Internal moves include backfill assumptions. Readiness and competence must be assessed separately.',options:rows.map(r=>({name:r.name,cost:r.total,detail:`${r.delay} mo to ready`}))};renderDecisionOverview();
  talentReport='HireOrGrow — Internal Talent scenarios\n'+narrative+'\n'+rows.map(r=>`${r.name}: ${money(r.total)}; incremental payroll incl. backfill ${money(r.pay)}; direct costs ${money(r.other)}; estimated losses ${money(r.loss)}`).join('\n')+'\nFinance approval required. Not an automated HR decision.';
 }
 function showTab(tab){
- for(const id of ['hire','replace','market','talent']){
-  el(id).classList.toggle('hide',id!==tab);
-  const button=el('tab-'+id);button.classList.toggle('active',id===tab);button.setAttribute('aria-selected',String(id===tab));
+ const decision=tab==='decision';
+ el('decision').classList.toggle('hide',!decision);
+ el('market').classList.toggle('hide',decision);
+ for(const id of ['decision','market']){
+  const btn=el('tab-'+id);const active=id===tab;
+  btn.classList.toggle('active',active);
+  btn.setAttribute('aria-selected',String(active));
  }
 }
-for(const id of ['hire','replace','market','talent']) el('tab-'+id).addEventListener('click',()=>showTab(id));
+for(const id of ['decision','market']) el('tab-'+id).addEventListener('click',()=>showTab(id));
 async function copy(text){
   try{
     if(navigator.clipboard && window.isSecureContext){await navigator.clipboard.writeText(text);alert('Report copied.');return;}
@@ -115,7 +169,12 @@ document.querySelectorAll('#replace input,#replace select').forEach(node=>node.a
 document.querySelectorAll('#talent input,#talent select').forEach(node=>node.addEventListener('input',calculateTalent));
 el('currency').addEventListener('input',()=>{calculateHire();calculateReplace();calculateTalent();set('r-currency',currency());});
 el('scenario-location').addEventListener('change',updateScenarioLocation);
+el('decision-role').addEventListener('change',()=>syncDecisionRole(el('decision-role')));
+el('m-role').addEventListener('change',()=>syncDecisionRole(el('m-role')));
+
 
 
 updateScenarioLocation();
 set('r-currency',currency());
+syncDecisionRole(el('decision-role'));
+showTab('decision');

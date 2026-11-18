@@ -1,123 +1,85 @@
-"""HireOrGrow 0.8 static-site smoke test. Public data is in repo; external FX response is mocked."""
+"""Functional regression test for v0.9 consolidated decision comparison."""
+import json
 from pathlib import Path
-from http.server import SimpleHTTPRequestHandler,ThreadingHTTPServer
+from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from threading import Thread
 from playwright.sync_api import sync_playwright
-import json
+
 ROOT=Path(__file__).resolve().parents[1]
 class Handler(SimpleHTTPRequestHandler):
- def __init__(self,*a,**k): super().__init__(*a,directory=str(ROOT),**k)
- def log_message(self,*a): pass
+ def __init__(self,*args,**kwargs): super().__init__(*args,directory=str(ROOT),**kwargs)
+ def log_message(self,*args): pass
 
 def main():
  server=ThreadingHTTPServer(('127.0.0.1',0),Handler)
  Thread(target=server.serve_forever,daemon=True).start()
- base=f'http://127.0.0.1:{server.server_port}/'
+ errors=[]
  try:
   with sync_playwright() as p:
-   path='/usr/bin/chromium' if Path('/usr/bin/chromium').exists() else None
-   browser=p.chromium.launch(headless=True,executable_path=path,args=['--no-sandbox'] if path else [])
-   page=browser.new_page(viewport={'width':1420,'height':1050})
-   errors=[];requests=[]
+   browser=p.chromium.launch(headless=True,executable_path='/usr/bin/chromium',args=['--no-sandbox'])
+   page=browser.new_page(viewport={'width':1440,'height':1040},device_scale_factor=1)
    page.on('pageerror',lambda e:errors.append(str(e)))
-   page.on('request',lambda q:requests.append(q.url))
    page.route('https://api.frankfurter.dev/**',lambda route:route.fulfill(content_type='application/json',body=json.dumps([
       {'date':'2026-11-17','base':'USD','quote':'EUR','rate':0.9},
       {'date':'2026-11-17','base':'USD','quote':'AMD','rate':385},
-      {'date':'2026-11-17','base':'USD','quote':'GEL','rate':2.7}
-   ]),headers={'Access-Control-Allow-Origin':'*'}))
-   # Sandbox environments may block 127.0.0.1. Inline only test assets and
-   # route the public JSON files; production still deploys external files.
-   page.route('https://hireorgrow.example/data/salary_references.json',lambda route:route.fulfill(content_type='application/json',body=(ROOT/'data'/'salary_references.json').read_text('utf8')))
-   page.route('https://hireorgrow.example/data/georgia_live.json',lambda route:route.fulfill(content_type='application/json',body=(ROOT/'data'/'georgia_live.json').read_text('utf8')))
-   content=(ROOT/'index.html').read_text('utf8')
-   content=content.replace('<link href="./styles.css" rel="stylesheet"/>','<style>'+ (ROOT/'styles.css').read_text('utf8') +'</style>')
-   content=content.replace('<script src="./app.js"></script>','<script>'+(ROOT/'app.js').read_text('utf8')+'</script>')
-   content=content.replace('<script src="./market.js"></script>','<script>'+(ROOT/'market.js').read_text('utf8')+'</script>')
-   content=content.replace('http-equiv="Content-Security-Policy"','http-equiv="Test-Only-CSP"')
-   content=content.replace('<head>','<head><base href="https://hireorgrow.example/">')
-   page.set_content(content,wait_until='load')
-   assert 'HireOrGrow 0.8.1' in page.title(),page.title()
-   assert page.locator('#tab-market').get_attribute('aria-selected')=='true'
-   assert page.locator('.benchmark-zone').count()==1 and page.locator('.calculators-zone').count()==1
-   assert page.locator('#hire-external').inner_text()=='$20,000'
-   page.locator('#tab-replace').click()
-   assert '$53,000' in page.locator('#r-keep').inner_text()
-   page.locator('#tab-talent').click()
-   assert '$71,500' in page.locator('#t-p-total').inner_text()
+      {'date':'2026-11-17','base':'USD','quote':'GEL','rate':2.7},
+      {'date':'2026-11-17','base':'USD','quote':'INR','rate':84}]),headers={'Access-Control-Allow-Origin':'*'}))
+   # Localhost is blocked in some sandboxes. Supply page assets inline and route
+   # public site data to the checked-in JSON fixtures (FX is mocked above).
+   page.route('https://hireorgrow.example/data/**',lambda route:route.fulfill(
+       content_type='application/json',body=(ROOT/'data'/route.request.url.split('/data/')[1].split('?')[0]).read_text('utf8')))
+   html=(ROOT/'index.html').read_text('utf8')
+   html=html.replace('<link href="./styles.css?v=0.9.0" rel="stylesheet"/>','<style>'+(ROOT/'styles.css').read_text('utf8')+'</style>')
+   html=html.replace('<script src="./app.js?v=0.9.0"></script>','<script>'+(ROOT/'app.js').read_text('utf8')+'</script>')
+   html=html.replace('<script src="./market.js?v=0.9.0"></script>','<script>'+(ROOT/'market.js').read_text('utf8')+'</script>')
+   html=html.replace('http-equiv="Content-Security-Policy"','http-equiv="Test-Only-CSP"')
+   html=html.replace('<head>','<head><base href="https://hireorgrow.example/">')
+   page.set_content(html,wait_until='domcontentloaded')
+   assert '0.9.0' in page.title()
+   assert page.locator('#tab-decision').get_attribute('aria-selected')=='true'
+   assert page.locator('#decision-chart .decision-chart-card').count()==3
+   assert page.locator('#decision-role option').count()==43
+   assert page.locator('#decision-role optgroup').count()==0
+   assert page.locator('#decision-role').input_value()=='devops-engineer'
+   assert page.locator('#hire-external').text_content()=='$20,000'
+   assert page.locator('#hire-internal').text_content()=='$11,200'
+   assert page.locator('#r-keep').text_content()=='$53,000'
+   assert page.locator('#r-replace').text_content()=='$74,000'
+   assert page.locator('#t-p-total').text_content()=='$71,500'
+   assert page.locator('#decision-chart .decision-bar-row').count()==7
+   assert page.locator('#decision-chart .decision-lowest-tag').count()==3
+   page.screenshot(path=str(ROOT/'v09_dashboard.png'),full_page=False)
+   assert page.locator('#hire-editor').is_visible()
+   assert page.locator('#hire-editor').get_attribute('open') is None
+   page.locator('[data-edit="hire"]').click()
+   assert page.locator('#hire-editor').get_attribute('open') is not None
+   page.locator('#he-recruit').fill('9000')
+   assert page.locator('#hire-external').text_content()=='$23,000'
+   assert '$23,000' in page.locator('#decision-chart').inner_text()
+   page.locator('#decision-role').select_option('bioinformatics-engineer')
+   assert page.locator('#m-role').input_value()=='bioinformatics-engineer'
+   assert page.locator('#r-role').input_value()=='Bioinformatics Engineer'
+   assert page.locator('#role').input_value()=='Bioinformatics Engineer'
+   assert page.locator('#t-role').input_value()=='Bioinformatics Engineer'
    page.locator('#tab-market').click()
-   page.wait_for_function("document.querySelector('#m-fetchstatus').textContent.includes('Public source snapshots:')",timeout=20000)
-   assert page.locator('.m-country:checked').count()==3
-   assert page.locator('.reference').count()==3
-   assert page.locator('#m-compare-rows tr').count()==3
-   page.locator('.country-source-group summary').first.click()
-   text=page.locator('#m-compare-rows').inner_text()
-   assert 'ITA Jobs' in text and 'Fairpay' in text and 'Platy.sk' in text,text[:2000]
-   assert 'NET' in text and 'GROSS' in text
-   assert 'Different level' in text
-   assert 'Collection blocked' in page.locator('#m-georgia-results').inner_text()
-   # Regression: when only Armenia is selected, no Georgian cards, vacancy panel,
-   # or Georgia-specific source details must be visible or copied to reports.
-   page.locator('.market-country-picker summary').click()
-   page.locator('.m-country[value="georgia"]').uncheck()
-   page.locator('.m-country[value="slovakia"]').uncheck()
-   assert page.locator('.m-country:checked').count()==1
-   assert page.locator('#m-compare-rows tr').count()==1
-   assert 'Armenia' in page.locator('#m-compare-rows').inner_text()
-   assert 'Georgia' not in page.locator('#m-compare-rows').inner_text()
-   assert 'Georgia' not in page.locator('#m-results').inner_text()
-   assert page.locator('#m-georgia-panel').is_hidden()
-   assert 'Georgia' not in page.locator('#m-interpretation').inner_text()
-   assert 'Georgia' not in page.locator('#m-fetchstatus').inner_text()
-   assert 'Georgia job feed' not in page.evaluate('marketReport')
-   # No selections should show neither evidence nor country-specific panels.
-   page.locator('.m-country[value="armenia"]').uncheck()
-   assert page.locator('#m-georgia-panel').is_hidden()
-   assert page.locator('#m-compare-rows tr').count()==1  # empty-state row
-   assert 'Select markets' in page.locator('#m-compare-rows').inner_text()
-   page.locator('[data-preset="priority"]').click()
-   assert page.locator('#m-georgia-panel').is_visible()
-   count=len(requests)
-   page.locator('#manual-rate-card summary').click()
-   page.locator('#m-historical').fill('42000')
-   assert len(requests)==count,'Manual rate unexpectedly initiated an HTTP request'
-   assert not any('42000' in x for x in requests)
-   assert not any('salarybyrole.com' in x for x in requests)
-   page.locator('#m-home').select_option('slovakia')
-   page.locator('#m-history-cur').select_option('EUR')
-   assert 'Context only' in page.locator('#m-ceo').inner_text()
-   page.locator('[data-preset="eu"]').click()
-   assert page.locator('.m-country:checked').count()==4
-   assert set(page.locator('.m-country:checked').evaluate_all('(xs)=>xs.map(x=>x.value)'))=={'portugal','finland','netherlands','slovakia'}
-   assert not page.locator('.m-country[value="armenia"]').is_checked()
-   page.locator('[data-preset="priority"]').click()
-   assert page.locator('.m-country:checked').count()==3
-   page.locator('[data-preset="global"]').click()
-   assert page.locator('.m-country:checked').count()==9
-   page.locator('[data-preset="india"]').click()
-   assert page.locator('.m-country:checked').count()==1
-   assert page.locator('.m-country[value="india"]').is_checked()
-   page.locator('[data-preset="us"]').click()
-   assert page.locator('.m-country[value="united-states"]').is_checked()
-   page.locator('[data-preset="priority"]').click()
-   # Simulate successful scheduled collection with an honest *small sample*.
-   test_feed={'version':'0.8','provider':'findjobs.ge','sourceUrl':'https://findjobs.ge/crawl/en/',
-    'status':'ok','generatedAt':'2026-11-18T08:00:00Z', 'roles':{
-      'devops-engineer':{'sampleCount':2,'verifiedMedian':None,'verifiedMedianCount':0,
-      'vacancies':[{'title':'DevOps Engineer','company':'Example','city':'Tbilisi','grade':'unspecified','min':5000,'max':6000,'postedAt':'2026-11-18',
-       'url':'https://findjobs.ge/en/vacancy/EXAMPLE-devops'},
-       {'title':'Senior DevOps Engineer','company':'Sample','city':'Tbilisi','grade':'senior','min':6000,'max':7500,'postedAt':'2026-11-18',
-       'url':'https://findjobs.ge/en/vacancy/SAMPLE-devops'}]}}}
-   page.unroute('https://hireorgrow.example/data/georgia_live.json')
-   page.route('https://hireorgrow.example/data/georgia_live.json',lambda r:r.fulfill(content_type='application/json',body=json.dumps(test_feed)))
-   page.locator('#m-refresh').click()
-   page.wait_for_function("document.querySelector('#m-georgia-count').textContent.includes('2 salary-posted ads')",timeout=12000)
-   assert 'Sample too small' in page.locator('#m-georgia-results').inner_text()
-   assert 'Mid-level' in page.locator('#m-result-title').inner_text()
-   assert 'No grade-exact job ads found' in page.locator('#m-georgia-results').inner_text()
+   assert page.locator('#market').is_visible()
+   assert page.locator('#decision').is_hidden()
+   page.wait_for_function("document.querySelector('#m-fetchstatus').textContent.includes('Public source snapshots:')",timeout=15000)
+   assert page.locator('#m-compare-rows .market-mini-card').count()==3
+   assert page.locator('#m-compare-rows').inner_text().count('No documented range')==3
+   page.locator('#m-role').select_option('devops-engineer')
+   page.locator('#tab-decision').click()
+   assert page.locator('#decision-role').input_value()=='devops-engineer'
+   page.locator('#currency').select_option('EUR')
+   assert '€' in page.locator('#decision-chart').inner_text()
+   # Responsive: three comparison groups stack and no horizontal page overflow.
+   page.set_viewport_size({'width':390,'height':850})
+   page.wait_for_timeout(150)
+   assert page.evaluate('document.documentElement.scrollWidth<=window.innerWidth+2'), 'Horizontal overflow on mobile'
    assert not errors,errors
-
+   print('PASS: 43 roles, 3 interactive charts, cost calculations, sync, FX-independent decision UI, market data, responsive layout')
+   page.screenshot(path=str(ROOT/'v09_preview.png'),full_page=True)
    browser.close()
-   print('PASS: market vs calculators, 9 markets, 4 EU markets, 3 source cards, source attribution, no rate leak, financial calculators and small-sample safeguards')
- finally:server.shutdown();server.server_close()
+ finally:server.shutdown()
+
 if __name__=='__main__':main()

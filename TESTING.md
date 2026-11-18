@@ -24,3 +24,13 @@ python tests/test_source_pipeline.py
 ```
 
 These tests use simulated FX and source payloads. They do not verify current salary statistics or licenses. For authorized live collection, a permitted provider API or explicit written permission is needed.
+
+## v0.9.0 FX acceptance checks
+
+- With USD selected, Georgia (GEL) and Slovakia (EUR) cards display USD figures first and original local currency underneath. Armenia (already USD) stays unchanged.
+- Every conversion identifies Frankfurter, quote observation date and FX rate availability; source data are never rewritten.
+- With a mocked offline FX failure, original pay appears and an FX unavailable warning replaces the converted amount; no invented rate.
+- No Internal rate or confidential rate value is sent in any external request.
+- Browser tests mock FX responses; repeat on deployed GitHub Pages with a real provider response.
+
+Version 0.9 adds a shared 43-position dropdown, independent chart comparisons and three expanded financial editors, all on Decision Comparison. Verify that edits change the associated chart only, without mixing incomparable cost horizons.
