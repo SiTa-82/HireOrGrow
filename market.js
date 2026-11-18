@@ -50,8 +50,8 @@ const sourceHosts=new Set(['salarybyrole.com','www.salarybyrole.com','yubhub.co'
 const allMarkets=Object.keys(MARKETS);
 const marketPresets={eu:allMarkets.filter(x=>MARKETS[x].region==='eu'),us:['united-states'],global:allMarkets};
 const selectedMarkets=()=>Array.from(document.querySelectorAll('.m-country:checked')).map(x=>x.value);
-const SOURCE_FILES={refs:'./data/salary_references.json?v=0.9.3',jobs:'./data/georgia_live.json?v=0.9.3',auto:'./data/automatic_market.json?v=0.9.3'};
-let referenceRecords=[], georgiaFeed={status:'not_collected',roles:{},generatedAt:null};
+const SOURCE_FILES={refs:'./data/salary_references.json?v=0.9.6',jobs:'./data/georgia_live.json?v=0.9.6',auto:'./data/automatic_market.json?v=0.9.6',history:'./data/rate_history.json?v=0.9.6'};
+let rateHistory={observations:[],lastCheckedAt:null}, referenceRecords=[], georgiaFeed={status:'not_collected',roles:{},generatedAt:null};
 let automated={generatedAt:null,providers:{},salaryRecords:[],vacancyRecords:[]};
 let marketError=[],marketBusy=false,lastLoad=0,marketOpened=false,referenceLoaded=false,fxRates={USD:1},fxDates={},fxDate=null;
 const showDate=raw=>raw?String(raw).slice(0,10):'Not supplied';
@@ -251,8 +251,46 @@ function renderAutomaticJobs(selected,role,grade){
  }).join('');
  host.innerHTML=`<p class="marketnote">${shown.length} salary-disclosing job listing(s) shown${oldJobs?' · '+oldJobs+' retained from a previous refresh':''}. These are individual offers, not a market salary median. ${exact.length?'Grade-labelled listings shown first.':'Exact grade not provided; other levels shown only as context.'}</p><div class="auto-vacancy-grid">${lines}</div>`;
 }
+
+function renderRateTrends(selected,role,grade){
+ const host=el('m-trends-chart');if(!host)return;
+ const rows=(rateHistory.observations||[]).filter(r=>r && selected.includes(r.country) && r.role===role && r.grade===grade && r.roleScope==='exact' && r.kind && Number.isFinite(Number(r.low)) && Number.isFinite(Number(r.high)));
+ if(!selected.length){host.innerHTML='<p class="marketnote">Select a market to view historical observations.</p>';return;}
+ if(!rows.length){host.innerHTML='<p class="marketnote">No rate history recorded for this role, grade and selected location yet. Collection starts after the first successful GitHub Actions refresh. Historical values are not invented.</p>';return;}
+ const bySource=new Map();
+ for(const r of rows){
+  const key=r.seriesKey||[r.country,r.role,r.grade,r.source,r.currency,r.period,r.basis].join('|');
+  if(!bySource.has(key))bySource.set(key,[]);
+  bySource.get(key).push(r);
+ }
+ const trendCards=[...bySource.values()].sort((a,b)=>b.length-a.length).slice(0,8).map(series=>{
+  series.sort((a,b)=>a.observedAt.localeCompare(b.observedAt));
+  const first=series[0], last=series[series.length-1];
+  const center=r=>r.median!==null&&r.median!==undefined?Number(r.median):(Number(r.low)+Number(r.high))/2;
+  const values=series.map(center),firstV=values[0],lastV=values[values.length-1];
+  const delta=firstV>0?(lastV/firstV-1)*100:null;
+  const draw=series.length>1;
+  const h=96,w=315,pad=17,min=Math.min(...values),max=Math.max(...values);
+  const position=(v,i)=>[pad+i*(w-pad*2)/Math.max(1,values.length-1),max===min?h/2:pad+(max-v)*(h-pad*2)/(max-min)];
+  const coords=values.map(position);
+  const path=coords.map(([x,y],i)=>`${i?'L':'M'}${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
+  const svg=draw?`<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="${safe(series.length)} tracked observations: ${safe(first.observedAt)} to ${safe(last.observedAt)}" preserveAspectRatio="none"><path d="${path}" stroke="#276ea8" stroke-width="2.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>${coords.map(([x,y])=>`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3.5" fill="#276ea8"/>`).join('')}</svg>`:'<div class="rate-trend-empty">One recorded observation. Next observation will establish the first historical comparison.</div>';
+  const change=series.length<2?'Tracking started':delta===null?'No comparable baseline':`${delta>=0?'+':''}${delta.toFixed(1)}% observed change`;
+  return `<article class="rate-trend-card">
+    <div class="rate-trend-meta"><strong>${safe(MARKETS[first.country]?.name||first.country)} · ${safe(first.source)}</strong><span class="pill">${safe(first.kind==='curated'?'Static survey':'API observations')}</span></div>
+    <p class="rate-trend-units">${safe(first.grade)} · ${safe(first.basis.toUpperCase())} · ${safe(first.currency)} per ${safe(first.period)} · same source only</p>
+    <div class="rate-trend-amount">${safe(formatMoney(lastV,last.currency))} <small>${safe(last.median!==null&&last.median!==undefined?'reported median':'range midpoint')}</small></div>
+    ${svg}
+    <div class="rate-trend-dates"><span>First saved: ${safe(showDate(first.observedAt))}</span><span>Last saved: ${safe(showDate(last.observedAt))}</span></div>
+    <p class="marketnote"><strong>${safe(change)}</strong> · ${series.length} observation${series.length===1?'':'s'} · Source publication: ${safe(showDate(last.publishedDate))}. ${first.kind==='curated'?'This survey is not automatically republished.':'Repeated API collection does not guarantee changed underlying salary data.'} ${marketLink(first.url,'Source')}</p>
+   </article>`;
+ });
+ const unrepresented=rows.length>0&&bySource.size>8?`<p class="marketnote">Showing 8 of ${bySource.size} distinct source series. No incompatible series are merged.</p>`:'';
+ host.innerHTML=`<div class="rate-trend-grid">${trendCards.join('')}</div>${unrepresented}<p class="rate-trend-footnote">Collection history is stored in the public repository. It contains salary observations, NOT employee information. These are nominal source-currency changes, not inflation-adjusted trends. Empty or unchanged data must not be interpreted as a flat labor market.</p>`;
+}
 function renderMarket(){
  const role=el('m-role').value,grade=el('m-grade').value,selected=selectedMarkets();
+ renderRateTrends(selected,role,grade);
  // Every country-specific evidence section must obey the checkbox selection.
  // A provider's existence in the underlying dataset is NOT grounds to show its card.
  const georgiaSelected=selected.includes('georgia');
@@ -315,7 +353,7 @@ function renderMarket(){
  const shownFeed=georgiaSelected?' · '+stamp:'';
  const relevantErrors=marketError.filter(x=>georgiaSelected||!x.toLowerCase().includes('georgia'));
  set('m-fetchstatus',marketBusy?'Loading site data…':`Public source snapshots: ${reference.length}${shownFeed} · FX ${fxDate||'unavailable'}${relevantErrors.length?' · '+relevantErrors.join('; '):''}`);
- const lines=[`HireOrGrow v0.9.3 · ${MARKET_ROLES[role]} · level ${grade}`,`Markets: ${selected.map(c=>MARKETS[c].name).join(', ')}`,
+ const lines=[`HireOrGrow v0.9.6 · ${MARKET_ROLES[role]} · level ${grade}`,`Markets: ${selected.map(c=>MARKETS[c].name).join(', ')}`,
  `Report created: ${new Date().toISOString().slice(0,10)}`,`Displayed currency: ${el('m-reportcur').value} · Frankfurter FX ${fxDate||'unavailable'}`,`Internal rate: ${raw===null?'Not entered':formatMoney(raw,internalcur)+'/year (manual, fictional)'}`,summary];
  for(const r of reference){const cv=marketConversion(r);lines.push(`${MARKETS[r.country].name}: ${cv.convertedRange} per ${r.period} [${cv.conversionNote}], source original ${cv.original} ${r.currency} per ${r.period}, ${r.basis}, grade ${r.grade}, scope ${r.roleScope||'exact'}, n=${r.sample||'unknown'}, ${r.source}, checked ${r.checkedDate}, updated ${r.publishedDate||'not specified'}, ${r.url}`)}
  if(georgiaSelected)lines.push(`Georgia legacy feed: ${stamp}; ${georgiaFeed.sourceUrl||''}`);
@@ -325,7 +363,7 @@ function renderMarket(){
 }
 async function loadMarkets(){
  const run=++lastLoad;marketBusy=true;marketError=[];renderMarket();
- const tasks=await Promise.allSettled([fetchData(SOURCE_FILES.refs),fetchData(SOURCE_FILES.jobs),fetchData(SOURCE_FILES.auto),updateFx()]);
+ const tasks=await Promise.allSettled([fetchData(SOURCE_FILES.refs),fetchData(SOURCE_FILES.jobs),fetchData(SOURCE_FILES.auto),fetchData(SOURCE_FILES.history),updateFx()]);
  if(run!==lastLoad)return;
  if(tasks[0].status==='fulfilled'&&Array.isArray(tasks[0].value.records)){referenceRecords=tasks[0].value.records;referenceLoaded=true;}
  else{referenceRecords=[];referenceLoaded=false;marketError.push('Salary reference file unavailable')}
@@ -333,7 +371,10 @@ async function loadMarkets(){
  else{georgiaFeed={status:'unavailable',roles:{}};marketError.push('Georgia job feed file unavailable')}
  if(tasks[2].status==='fulfilled'&&tasks[2].value&&Array.isArray(tasks[2].value.salaryRecords)&&Array.isArray(tasks[2].value.vacancyRecords)){automated=tasks[2].value;}
  else{automated={providers:{},salaryRecords:[],vacancyRecords:[],generatedAt:null};marketError.push('Automated source snapshot unavailable')}
+ if(tasks[3].status==='fulfilled'&&tasks[3].value&&Array.isArray(tasks[3].value.observations)){rateHistory=tasks[3].value;}
+ else{rateHistory={observations:[],lastCheckedAt:null};marketError.push('Rate history unavailable')}
  marketBusy=false;renderMarket();
+ if(typeof refreshFinancialBenchmark==='function')refreshFinancialBenchmark();
 }
 function setMarketPreset(type){
  const wanted=new Set(marketPresets[type]||[]);
@@ -344,7 +385,10 @@ function setMarketPreset(type){
 }
 for(const b of document.querySelectorAll('[data-preset]'))b.addEventListener('click',()=>setMarketPreset(b.dataset.preset));
 for(const c of document.querySelectorAll('.m-country'))c.addEventListener('change',()=>{document.querySelectorAll('[data-preset]').forEach(b=>{b.classList.remove('active');b.setAttribute('aria-pressed','false')});renderMarket()});
-for(const id of ['m-role','m-grade','m-reportcur','m-burden','m-historical','m-home','m-history-cur','m-rate-basis','m-rate-type'])el(id).addEventListener('input',renderMarket);
+for(const id of ['m-role','m-grade','m-reportcur','m-burden','m-historical','m-home','m-history-cur','m-rate-basis','m-rate-type'])el(id).addEventListener('input',()=>{
+ if(id==='m-grade'){el('decision-grade').value=el('m-grade').value;if(typeof refreshFinancialBenchmark==='function')refreshFinancialBenchmark()}
+ renderMarket();
+});
 el('m-refresh').addEventListener('click',loadMarkets);
 el('tab-market').addEventListener('click',()=>{if(!marketOpened){marketOpened=true;loadMarkets()}});
 el('m-copy').onclick=()=>copy(marketReport);

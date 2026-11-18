@@ -34,3 +34,22 @@ These tests use simulated FX and source payloads. They do not verify current sal
 - Browser tests mock FX responses; repeat on deployed GitHub Pages with a real provider response.
 
 Version 0.9 adds a shared 43-position dropdown, independent chart comparisons and three expanded financial editors, all on Decision Comparison. Verify that edits change the associated chart only, without mixing incomparable cost horizons.
+
+
+## v0.9.6 checks
+
+- Shared assumptions appear above the three charts and can be edited independently.
+- For Armenia Mid DevOps, the market GROSS rate remains empty: the Senior NET
+  ITA Jobs survey is **not** borrowed. The $48,000 internal rate is a fictional
+  starting value, not an Armenian salary estimate.
+- For Netherlands Mid DevOps, a published GROSS midpoint may populate annual
+  market and internal rate after FX conversion. Market source and currency are shown.
+- A promotion increase updates Retain and internal talent costs; a training
+  budget updates relevant direct costs. All three charts recalculate.
+- Only the source-matched Market Annual Gross Rate can update employer-cost
+  assumptions. It never silently calculates local payroll taxes.
+- `Rate Trends` shows one observation before repeated collections and does not
+  invent historical values. A selected market and role can have zero records.
+- Weekly GitHub Action must append and commit only public sources, then deploy
+  the updated history file. Successful workflow != proof any API returned salary.
+- Test code: `python tests/test_rate_history.py` and `python tests/test_browser.py`.

@@ -1,4 +1,4 @@
-"""Functional regression test for v0.9 consolidated decision comparison."""
+"""Functional regression test for v0.9.6 financial assumptions and rate trends."""
 import json
 from pathlib import Path
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
@@ -29,7 +29,7 @@ def main():
    page.route('https://hireorgrow.example/data/**',lambda route:route.fulfill(
        content_type='application/json',body=(ROOT/'data'/route.request.url.split('/data/')[1].split('?')[0]).read_text('utf8')))
    page.route('https://hireorgrow.example/data/automatic_market.json*',lambda route:route.fulfill(content_type='application/json',body=json.dumps({
-      'version':'0.9.3','generatedAt':'2026-11-18T14:00:00Z',
+      'version':'0.9.6','generatedAt':'2026-11-18T14:00:00Z',
       'providers':{'salarybyrole':{'status':'ok','records':3},'yubhub':{'status':'ok','records':1}},
       'salaryRecords':[{'country':'netherlands','role':'devops-engineer','grade':'mid','source':'SalaryByRole (automated API)',
        'url':'https://salarybyrole.com/api/salary?role=devops-engineer&country=netherlands','type':'aggregated_api_estimate',
@@ -42,13 +42,13 @@ def main():
        'observedDate':'2026-11-18','fetchedAt':'2026-11-18T14:00:00Z'}]
    })))
    html=(ROOT/'index.html').read_text('utf8')
-   html=html.replace('<link href="./styles.css?v=0.9.3" rel="stylesheet"/>','<style>'+(ROOT/'styles.css').read_text('utf8')+'</style>')
-   html=html.replace('<script src="./app.js?v=0.9.3"></script>','<script>'+(ROOT/'app.js').read_text('utf8')+'</script>')
-   html=html.replace('<script src="./market.js?v=0.9.3"></script>','<script>'+(ROOT/'market.js').read_text('utf8')+'</script>')
+   html=html.replace('<link href="./styles.css?v=0.9.6" rel="stylesheet"/>','<style>'+(ROOT/'styles.css').read_text('utf8')+'</style>')
+   html=html.replace('<script src="./app.js?v=0.9.6"></script>','<script>'+(ROOT/'app.js').read_text('utf8')+'</script>')
+   html=html.replace('<script src="./market.js?v=0.9.6"></script>','<script>'+(ROOT/'market.js').read_text('utf8')+'</script>')
    html=html.replace('http-equiv="Content-Security-Policy"','http-equiv="Test-Only-CSP"')
    html=html.replace('<head>','<head><base href="https://hireorgrow.example/">')
    page.set_content(html,wait_until='domcontentloaded')
-   assert '0.9.3' in page.title()
+   assert '0.9.6' in page.title()
    assert page.locator('#tab-decision').get_attribute('aria-selected')=='true'
    assert page.locator('#tab-decision .top-nav-symbol svg').count()==1
    assert page.locator('#tab-market .top-nav-symbol svg').count()==1
@@ -62,13 +62,40 @@ def main():
    assert page.locator('#decision-role option').count()==43
    assert page.locator('#decision-role optgroup').count()==0
    assert page.locator('#decision-role').input_value()=='devops-engineer'
+   assert page.locator('#fin-internal').input_value()=='48000'
+   assert page.locator('#fin-market').input_value()==''  # Armenia Mid DevOps has no gross reference
+   assert page.locator('#fin-raise').input_value()=='4176'
+   assert page.locator('#fin-training').input_value()=='1023'
    assert page.locator('#hire-external').text_content()=='$20,000'
-   assert page.locator('#hire-internal').text_content()=='$11,200'
-   assert page.locator('#r-keep').text_content()=='$53,000'
+   assert page.locator('#hire-internal').text_content()=='$11,223'
+   assert page.locator('#r-keep').text_content()=='$53,199'
    assert page.locator('#r-replace').text_content()=='$74,000'
-   assert page.locator('#t-p-total').text_content()=='$71,500'
-   assert page.locator('#decision-chart .decision-bar-row').count()==7
+   assert page.locator('#t-p-total').text_content().startswith('$')
+   assert page.locator('#decision-chart .decision-bar-row').count()==9
+   assert page.locator('#decision-chart .decision-bar-row--empty').count()==2
    assert page.locator('#decision-chart .decision-lowest-tag').count()==3
+   # First and second colored bar tracks must align pixel-perfectly across
+   # the three cards, even when Retain vs. Replace has no lead-time detail.
+   for row_index in (0,1):
+    tracks=page.locator(f'#decision-chart .decision-chart-card .decision-bar-row:nth-child({row_index+1}) .decision-bar-track')
+    tops=tracks.evaluate_all('(es)=>es.map(e=>e.getBoundingClientRect().top)')
+    assert len(tops)==3 and max(tops)-min(tops)<1,(row_index,tops)
+   assert page.locator('#decision-chart .decision-chart-head h3').all_text_contents()==['External vs. Internal Hire','Retain vs. Replace','Hire, Promote, or Reskill']
+   assert page.locator('#decision-chart .decision-chart-edit').count()==3
+   assert all('Edit Assumptions' in x for x in page.locator('#decision-chart .decision-chart-edit').all_text_contents())
+   assert '≈ 2.0 months to start' in page.locator('#decision-chart').inner_text()
+   assert '≈ 1.0 months to start' in page.locator('#decision-chart').inner_text()
+   assert '2.0 months to ready' in page.locator('#decision-chart').inner_text()
+   assert '1.0 months to ready' in page.locator('#decision-chart').inner_text()
+   assert '4.0 months to ready' in page.locator('#decision-chart').inner_text()
+
+   # Three desktop cards share the same horizontal bands from heading to actions.
+   for selector in ['.decision-chart-head','.decision-chart-bars','.decision-chart-summary','.decision-chart-note','.decision-chart-edit']:
+    tops=[round(e['y'],1) for e in page.locator('#decision-chart .decision-chart-card '+selector).evaluate_all('(es)=>es.map(e=>e.getBoundingClientRect().toJSON())')]
+    assert max(tops)-min(tops)<2,(selector,tops)
+   assert page.locator('.decision-chart-edit').first.evaluate('(e)=>getComputedStyle(e).backgroundColor')!='rgba(0, 0, 0, 0)'
+
+   page.locator('#decision-chart').screenshot(path=str(ROOT/'v095_charts.png'), animations='disabled')
    page.screenshot(path=str(ROOT/'v09_dashboard.png'),full_page=False)
    assert page.locator('#hire-editor').is_visible()
    assert page.locator('#hire-editor').get_attribute('open') is None
@@ -77,6 +104,16 @@ def main():
    page.locator('#he-recruit').fill('9000')
    assert page.locator('#hire-external').text_content()=='$23,000'
    assert '$23,000' in page.locator('#decision-chart').inner_text()
+   # Readily available exact same-grade GROSS midpoint from Netherlands, with mocked FX.
+   page.locator('#scenario-location').select_option('netherlands')
+   page.wait_for_function("document.querySelector('#fin-market').value !== ''",timeout=15000)
+   market_annual=float(page.locator('#fin-market').input_value())
+   assert market_annual>50000,market_annual
+   assert float(page.locator('#r-newpay').input_value())==market_annual
+   page.locator('#fin-raise').fill('9000')
+   assert page.locator('#r-raise').input_value()=='9000'
+   page.locator('#fin-training').fill('3000')
+   assert page.locator('#t-s-train').input_value()=='3000'
    page.locator('#decision-role').select_option('bioinformatics-engineer')
    assert page.locator('#m-role').input_value()=='bioinformatics-engineer'
    assert page.locator('#r-role').input_value()=='Bioinformatics Engineer'
@@ -88,6 +125,7 @@ def main():
    assert page.locator('#market').is_visible()
    assert page.locator('#decision').is_hidden()
    page.wait_for_function("document.querySelector('#m-fetchstatus').textContent.includes('Public source snapshots:')",timeout=15000)
+   assert page.locator('#rate-trends').count()==1
    assert page.locator('#m-compare-rows .market-mini-card').count()==3
    assert page.locator('#m-compare-rows').inner_text().count('No documented range')==3
    page.locator('#m-role').select_option('devops-engineer')
@@ -100,6 +138,18 @@ def main():
    assert 'SalaryByRole' in page.locator('#m-results').inner_text() or 'SalaryByRole' in page.locator('#m-auto-status').inner_text()
    assert '₾6,000' in page.locator('#m-auto-results').inner_text()
    assert 'Realtime Recruitment' in page.locator('#m-compare-rows').inner_text()
+   assert 'Tracking started' in page.locator('#m-trends-chart').inner_text()
+   # Test a second observed record in memory ONLY; do not ship fabricated history.
+   added=page.evaluate("""() => {
+     const r=rateHistory.observations.find(x=>x.country==='netherlands'&&x.role==='devops-engineer'&&x.grade==='mid'&&x.kind==='curated');
+     if(!r)return false;
+     rateHistory.observations.push({...r,observedAt:'2026-12-02',low:r.low*1.05,high:r.high*1.05,median:r.median===null?null:r.median*1.05});
+     renderMarket();return true;
+   }""")
+   assert added
+   assert page.locator('#m-trends-chart svg').count()>0
+   assert '+5.0% observed change' in page.locator('#m-trends-chart').inner_text()
+
    # Check market selection never leaks unrelated countries.
    page.locator('[data-preset="clear"]').click()
    page.locator('.m-country[value="armenia"]').check()

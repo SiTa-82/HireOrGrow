@@ -1,3 +1,9 @@
+## v0.9.5 — Aligned decision chart tracks (UI fix)
+- Standardized the vertical positions of scenario labels, lead-time details, colored bars, and lowest-cost tags across all three decision cards.
+- Reserved blank lead-time lines for scenarios without readiness times and invisible third slots for two-option comparisons.
+- Preserved all calculator formulas, market datasets, integrations and current workflows.
+- No API keys or confidential data included.
+
 ## v0.9.4 — Decision Comparison visual alignment
 
 - Styled decision cards with a subtle blue accent to match the Decision Comparison navigation.
@@ -79,3 +85,13 @@
 - Manual Internal rate remains separate from live data requests.
 - Georgia source crawler is blocked by robots.txt; reports display source access failure rather than implying no vacancies.
 - Preserved all existing decision calculations, report actions and CSV-free, no-storage demonstration mode.
+
+## v0.9.6 — Financial Assumptions + Rate Trends
+
+- Added a shared, editable financial assumptions panel covering role/level-specific market gross pay, internal gross pay, annual promotion/retention increase, and one-off training budget. Optional employer overhead remains explicitly user-provided.
+- Market pay is populated only for a same-role, same-seniority, GROSS benchmark; report a sourced median or a labelled range midpoint, not a fake market average. When no comparable source exists, do not invent a salary.
+- Promotion default is 8.7% (Mercer 2026 US compensation planning, one-level promotions), and training default is $1,023/learner (Training Magazine 2026 US organizational average); neither figure claims to be local or occupation-specific.
+- Shared assumptions feed the three financial models; the one-off cost chart stays one-off, with a separate illustrative first-year pay comparison. Financial models use gross salary plus manually assumed overhead as an employer-cost proxy, not an automatic local tax calculation.
+- Added a distinct **Rate Trends** section, displaying observations separately by occupation, market, seniority, original currency, gross/net basis, and source. Historical values are never backdated or combined across unlike datasets.
+- Added an append-only public `data/rate_history.json` snapshot and a GitHub Action that saves future source observations back into the repository before publishing. Static studies create a new point only if their published values change. API records are archived only when freshly fetched, not when re-used from an earlier API failure.
+- Unchanged formula structure and all 110 prior salary benchmark records retained.

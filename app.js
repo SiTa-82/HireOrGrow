@@ -42,14 +42,18 @@ function renderDecisionOverview(){
    const key=group.key;
    const summary=tied?'Equal Lowest Modeled Costs':`${winners[0].name} · ${money(best)}`;
    const next= !tied && Number.isFinite(second)?`${money(Math.max(0,second-best))} Below Next Alternative`:'No Cost Difference';
-   const bars=options.map(o=>{
+   // Each card uses exactly three aligned scenario slots. Missing scenarios and
+   // unavailable lead times reserve space, rather than shifting the bars upward.
+   const bars=Array.from({length:3},(_,index)=>{
+      const o=options[index];
+      if(!o)return '<div class="decision-bar-row decision-bar-row--empty" aria-hidden="true"></div>';
       const isLowest=Math.abs(o.cost-best)<.005;
       const width=Math.max(0,Math.min(100,100*Math.max(o.cost,0)/maxVal));
-      const detail=o.detail?`<span class="decision-bar-detail">${safe(o.detail)}</span>`:'';
       return `<div class="decision-bar-row" title="${safe(o.name)}: ${safe(money(o.cost))}">
-       <div class="decision-bar-label"><span>${safe(o.name)}${detail}</span><strong>${safe(money(o.cost))}</strong></div>
+       <div class="decision-bar-label"><span>${safe(o.name)}</span><strong>${safe(money(o.cost))}</strong></div>
+       <span class="decision-bar-detail${o.detail?'':' decision-bar-detail--empty'}">${o.detail?safe(o.detail):'&nbsp;'}</span>
        <div class="decision-bar-track"><div class="decision-bar-fill ${isLowest?'lowest':''}" style="width:${width.toFixed(2)}%"></div></div>
-       ${isLowest?'<span class="decision-lowest-tag">Lowest Modeled Cost</span>':''}
+       ${isLowest?'<span class="decision-lowest-tag">Lowest Modeled Cost</span>':'<span class="decision-lowest-placeholder" aria-hidden="true">&nbsp;</span>'}
       </div>`;
    }).join('');
    return `<article class="decision-chart-card" aria-label="${safe(group.title)} estimated costs">
@@ -75,6 +79,78 @@ function syncDecisionRole(source){
  if(typeof renderMarket==='function')renderMarket();
 }
 
+
+// v0.9.6: shared financial assumptions. Only a same-role/same-grade, annualized
+// GROSS benchmark may auto-populate a market pay input. Otherwise keep explicit
+// demo inputs or require a user-entered figure; never infer pay from NET or CTC.
+const finManual={market:false,internal:false,raise:false,training:false};
+let finSourceRecord=null;
+const FIN_DEMO_INTERNAL=48000,FIN_RAISE_PERCENT=.087,FIN_US_TRAIN=1023;
+function fm(id){const raw=el(id)?.value;if(raw===''||raw===undefined)return null;const val=Number(raw);return Number.isFinite(val)&&val>=0?val:null;}
+function finField(id,val){el(id).value=Number.isFinite(val)?String(Math.round(val)):'';}
+function financialMarketCandidate(){
+ const loc=el('scenario-location').value,grade=el('decision-grade').value,role=el('decision-role').value;
+ if(!MARKETS[loc])return null;
+ const all=[...(typeof referenceRecords!=='undefined'?referenceRecords:[]),...((typeof automated!=='undefined'&&automated.salaryRecords)||[])];
+ const candidates=all.filter(r=>r.country===loc&&r.role===role&&r.grade===grade&&r.basis==='gross'&&r.roleScope==='exact'&&['year','month'].includes(r.period)&&Number(r.low)>0&&Number(r.high)>=Number(r.low));
+ candidates.sort((a,b)=>(b.publishedDate||'').localeCompare(a.publishedDate||'')||Number(b.sample||0)-Number(a.sample||0));
+ return candidates[0]||null;
+}
+function refreshFinancialBenchmark(opts={}){
+ if(opts.reset){Object.keys(finManual).forEach(k=>finManual[k]=false)}
+ const cur=currency(),r=financialMarketCandidate();finSourceRecord=r;
+ const marketAnnual=r?((r.median!==null&&r.median!==undefined?Number(r.median):(Number(r.low)+Number(r.high))/2)*(r.period==='month'?12:1)):null;
+ const converted=r&&typeof convertMoney==='function'?convertMoney(marketAnnual,r.currency,cur):r&&r.currency===cur?marketAnnual:null;
+ if(!finManual.market){finField('fin-market',converted)}
+ let src=!r?'No same-role, same-level GROSS market reference. Enter a market rate manually.':
+   converted===null?`Source: ${r.source}. FX unavailable for ${r.currency} → ${cur}; enter manually.`:
+   `${r.source} · ${r.publishedDate||'date not supplied'} · ${r.median!==null&&r.median!==undefined?'source median':'range midpoint (not statistical mean)'} · original ${r.currency} ${r.period}.`;
+ if(finManual.market)src='Manually entered market rate (not source-verified). Original benchmark: '+src;
+ set('fin-market-source',src);
+ const reference= fm('fin-market');
+ if(!finManual.internal){finField('fin-internal',reference!==null?reference:FIN_DEMO_INTERNAL)}
+ set('fin-internal-note',reference!==null&&!finManual.internal?'Default matches the verified market-rate input. Edit for your organization.':'Illustrative starting rate only; NOT a verified local average. Edit manually.');
+ if(!finManual.raise){finField('fin-raise',(fm('fin-internal')||0)*FIN_RAISE_PERCENT)}
+ let trainingVal=cur==='USD'?FIN_US_TRAIN:typeof convertMoney==='function'?convertMoney(FIN_US_TRAIN,'USD',cur):null;
+ if(!finManual.training){finField('fin-training',trainingVal)}
+ set('fin-training-note',trainingVal===null&& !finManual.training?'USD training average cannot be converted: enter a budget manually.':
+ `Indicative US average: $1,023 per learner (Training Magazine 2026), ${cur==='USD'?'no FX needed':'FX-converted if available'}. Not a reskilling quote.`);
+ applyFinancialAssumptions();
+}
+function applyFinancialAssumptions(){
+ const grossInternal=fm('fin-internal'),grossMarket=fm('fin-market'),raise=fm('fin-raise'),training=fm('fin-training');
+ const overhead=Math.max(0,Math.min(250,fm('fin-overhead')||0));
+ const multiplier=1+overhead/100;
+ // Existing models use estimated EMPLOYER expense, not pure salary. Since
+ // we cannot know statutory levies, this remains a user-defined cost proxy.
+ if(grossInternal!==null){
+  el('r-pay').value=Math.round(grossInternal*multiplier);
+  el('t-p-old').value=Math.round(grossInternal*multiplier);
+  el('t-s-old').value=Math.round(grossInternal*multiplier);
+ }
+ if(grossMarket!==null){
+  el('r-newpay').value=Math.round(grossMarket*multiplier);
+  el('t-e-new').value=Math.round(grossMarket*multiplier);
+ }
+ if(raise!==null){
+  el('r-raise').value=Math.round(raise*multiplier);
+  if(grossInternal!==null){
+   el('t-p-new').value=Math.round((grossInternal+raise)*multiplier);
+   el('t-s-new').value=Math.round((grossInternal+raise)*multiplier);
+  }
+ }
+ if(training!==null){
+  el('r-train').value=Math.round(training);
+  el('t-p-train').value=Math.round(training);
+  el('t-s-train').value=Math.round(training);
+  el('hi-onboard').value=Math.round(training);
+ }
+ const noted=grossMarket===null?'No verified market gross rate. External employer-cost inputs remain DEMO/manual until reviewed.':
+  `Market employer-cost proxy: ${money(grossMarket*multiplier)} per year (gross salary ${money(grossMarket)} + ${overhead}% assumed overhead).`;
+ set('fin-status',`${noted} Internal rate and promotion costs are user-adjustable. Illustrative US promotion default 8.7%; training default $1,023 per learner. No local taxes calculated. Edits update all three models; they are not hiring recommendations.`);
+ calculateHire();calculateReplace();calculateTalent();
+}
+
 function calculateHire(){
   const external=n('he-recruit')+n('he-onboard')+n('he-vacancy')+n('he-ramp');
   const internal=n('hi-recruit')+n('hi-onboard')+n('hi-vacancy')+n('hi-ramp')+n('hi-backfill');
@@ -89,6 +165,11 @@ function calculateHire(){
    (external===internal?'Both scenarios have the same modeled cost.':`${winner} has ${money(diff)} lower modeled cost.`)+
    ` Time to start: external ${n('he-days')} days, internal ${n('hi-days')} days. Lead time is contextual and not charged again. Backfilling the internal candidate’s prior role is estimated at ${money(n('hi-backfill'))}. Annual salary and candidate readiness require separate analysis.`;
   set('hire-summary',narrative);
+  const mr=fm('fin-market'),ir=fm('fin-internal'),inc=fm('fin-raise')||0;
+  const ov=1+(fm('fin-overhead')||0)/100;
+  set('hire-payroll-12mo',mr!==null&&ir!==null?
+   `Separate 12-month salary-inclusive projection (not included in the bars): external ${money(external+mr*ov)} vs. internal ${money(internal+(ir+inc)*ov)}. Assumes a full year of pay after start, so excludes vacancy timing; internal backfill remains in one-off costs. Validate with Finance.`:
+   `Salary-inclusive comparison unavailable: no matched market gross pay. One-off bars remain valid for the manually entered transition assumptions.`);
   decisionModels.hire={key:'hire',title:'External vs. Internal Hire',basis:'One-Time Cost to Fill a Position',note:'Time to start shown in approximate months. Compensation after hire is excluded.',options:[{name:'External hire',cost:external,detail:`≈ ${(n('he-days')/30.44).toFixed(1)} months to start`},{name:'Internal transfer',cost:internal,detail:`≈ ${(n('hi-days')/30.44).toFixed(1)} months to start`}]};renderDecisionOverview();
   hireReport='HireOrGrow — Cost to Fill\n'+narrative+'\nAssumptions entered by the user; this is not a hiring recommendation.';
 }
@@ -167,14 +248,23 @@ for(const id of ['print-hire','print-replace','t-print','m-print']) el(id).oncli
 document.querySelectorAll('#hire input,#hire select').forEach(node=>node.addEventListener('input',calculateHire));
 document.querySelectorAll('#replace input,#replace select').forEach(node=>node.addEventListener('input',calculateReplace));
 document.querySelectorAll('#talent input,#talent select').forEach(node=>node.addEventListener('input',calculateTalent));
-el('currency').addEventListener('input',()=>{calculateHire();calculateReplace();calculateTalent();set('r-currency',currency());});
-el('scenario-location').addEventListener('change',updateScenarioLocation);
-el('decision-role').addEventListener('change',()=>syncDecisionRole(el('decision-role')));
-el('m-role').addEventListener('change',()=>syncDecisionRole(el('m-role')));
+el('currency').addEventListener('input',()=>{set('r-currency',currency());refreshFinancialBenchmark();});
+el('decision-grade').addEventListener('change',()=>{el('m-grade').value=el('decision-grade').value;refreshFinancialBenchmark();if(typeof renderMarket==='function')renderMarket();});
+for(const fld of ['market','internal','raise','training'])el('fin-'+fld).addEventListener('input',()=>{
+  finManual[fld]=true;
+  if(fld==='internal'&&!finManual.raise){finField('fin-raise',(fm('fin-internal')||0)*FIN_RAISE_PERCENT)}
+  applyFinancialAssumptions();
+});
+el('fin-overhead').addEventListener('input',applyFinancialAssumptions);
+el('fin-reset').addEventListener('click',()=>refreshFinancialBenchmark({reset:true}));
+el('scenario-location').addEventListener('change',()=>{updateScenarioLocation();refreshFinancialBenchmark()});
+el('decision-role').addEventListener('change',()=>{syncDecisionRole(el('decision-role'));refreshFinancialBenchmark()});
+el('m-role').addEventListener('change',()=>{syncDecisionRole(el('m-role'));refreshFinancialBenchmark()});
 
 
 
 updateScenarioLocation();
 set('r-currency',currency());
 syncDecisionRole(el('decision-role'));
+refreshFinancialBenchmark();
 showTab('decision');

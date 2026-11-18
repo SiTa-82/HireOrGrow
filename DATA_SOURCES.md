@@ -23,3 +23,17 @@ As of 18 November 2026, v0.9.2 bundles **110 attributed reference entries**, cov
 - Never label source snapshots as live. FX exchange rates are retrieved separately and timestamped if available.
 - Some sources have restrictive licensing. Before any **commercial distribution** or production integration, review relevant terms and obtain licensed data/API access where required. No unauthorized scraping or bypass of access restrictions is included.
 - The user-entered Internal rate remains a client-side, manual demo input; never enter real NDA-covered payroll in public GitHub Pages.
+
+
+## Default financial input research (v0.9.6)
+
+- Mercer US compensation planning 2026, average planned one-level promotional
+  base-pay increase **8.7%**: https://www.imercer.com/articleinsights/2026-increase-budgets
+- Training Magazine 2026 Training Industry Report, average US organizational
+  learning spend **$1,023 per learner**: https://trainingmag.com/2026-training-industry-report/
+
+Neither is a market-specific recruitment, reskilling, or compliance quote.
+The 110 previously published salary records remain source-attributed static
+surveys or job-market reports. They are not automatically redownloaded.
+All history is recorded with observation date distinct from provider publication
+and all original currencies and pay bases preserved. See RATE_HISTORY.md.

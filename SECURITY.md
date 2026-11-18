@@ -22,3 +22,14 @@ This GitHub Pages application is an experimental PUBLIC browser demo. Do not use
 ## Responsible use
 
 Salary benchmarking is a decision-support input only. A geographic or grade-mismatched range must not be presented as a like-for-like salary estimate. National taxes, payroll burden, employment law and termination decisions are outside the current demo; use local experts before taking action.
+
+
+## v0.9.6 Public rate history
+
+`data/rate_history.json` contains only publicly attributable observations from
+market sources. It must NEVER contain manual internal rate input, employee
+identifiers, offer details, client billing rates, or NDA-protected information.
+The weekly GitHub workflow commits this public file to the repository with
+`contents: write`. Source ingestion stays server-side; the browser fetches
+published static JSON and public Frankfurter FX. Production corporate use
+still requires authenticated hosting and independent security assessment.

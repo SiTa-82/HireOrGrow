@@ -1,4 +1,4 @@
-# HireOrGrow 0.9.3 — Decision Comparison + automated evidence
+# HireOrGrow 0.9.6 — Decision Comparison + automated evidence
 
 A public, static, English-language preview of HireOrGrow.
 
@@ -13,18 +13,54 @@ A public, static, English-language preview of HireOrGrow.
 2. In GitHub repository root, choose Add file → Upload files.
 3. Upload the **contents** of the extracted folder, with `index.html`, `app.js`, `market.js`, and `styles.css` at root, not inside another parent folder. Keep `data/`, `scripts/`, `tests/` and `.github/workflows/` paths as shipped.
 4. Commit to `main` and review Actions. GitHub Pages remains configured to use GitHub Actions.
-5. Visit the site and hard-reload; verify footer `v0.9.3`.
+5. Visit the site and hard-reload; verify footer `v0.9.6`.
 
 See TESTING.md and SECURITY.md.
 
 ### Interface notes (v0.9.2)
 The Decision Comparison navigation explicitly names external vs. internal hire, retain vs. replace, and hire/promote/reskill. Charts are deliberately **unnumbered** and must be read independently: they cover different cost horizons and baselines. The *Scenario location* selector supplies report context only; changing it does not recalculate compensation, taxes or FX. Market reference data is presented in a separate **Salary Benchmarks** section.
 
-## Salary evidence coverage (v0.9.3)
+## Salary evidence coverage (v0.9.6)
 The public dataset has 110 attributed records across 9 countries. **These are preserved dated snapshots; separately, automated API snapshots are fetched weekly when available**. Grades, pay basis and sample sizes vary. A *candidate CTC* figure is not the same as employer gross base pay. Where the role or level is not matched the UI marks the record as context. Do not rank NET, gross, unspecified, and CTC as if comparable. Source websites retain their own terms and rights; investigate permission/licensing for any production/commercial redistribution.
 
-## API-based updates (v0.9.3)
+## API-based updates (v0.9.6)
 
 `market-data.yml` runs weekly and on commit, gathers permitted external API results into `data/automatic_market.json`, and deploys GitHub Pages. The 110 historical curated salary records remain intact in `data/salary_references.json`. SalaryByRole and YubHub data are labelled as API evidence, and individual job adverts are **not** used to infer salary medians. The API status and counts appear in the GitHub Actions job summary. A provider outage or zero relevant salary postings does not mean a country has no employment opportunities.
 
 Navigation uses a scales icon for Decision Comparison and a money/coins icon for Salary Benchmarks. No third-party icon library is loaded.
+
+
+## New in v0.9.6: Financial Assumptions and Rate Trends
+
+On **Decision Comparison**, choose a position, seniority, and exact scenario
+country. When Salary Benchmarks contains a same-role, same-grade **gross** pay
+reference, HireOrGrow uses a reported median or the transparent midpoint of a
+published range as the initial annual market pay. Otherwise, the field remains
+empty and clearly requires manual verification. Internal pay defaults to the
+market pay only when comparable evidence is available; otherwise it is a
+**demo number, not a local average**.
+
+Editable values:
+
+- **Market Annual Gross Rate** — verified role, country, grade if possible, or manual entry.
+- **Internal Annual Gross Rate** — initially aligned with that rate when available.
+- **Promotion / Retention Raise (annual)** — 8.7% of internal pay (US Mercer
+  2026 one-level promotion planning default, not local evidence).
+- **Training Budget (one-off)** — 2026 US organizational mean $1,023 per learner,
+  converted to the decision currency when an FX quote is available; not a
+  specialty-specific reskilling price.
+- **Employer Overhead % (optional)** — user assumption, 0 by default. The model
+  NEVER calculates statutory local levies/taxes.
+
+Editing the shared fields updates detailed calculators. Their salary-based
+employer expense is an *illustrative proxy*, not payroll compliance.
+The External vs Internal bar chart remains a one-time transition cost;
+a separate 12-month salary-inclusive what-if shows the gross proxy and
+states its simplifying assumptions.
+
+The **Rate Trends** subsection of Salary Benchmarks displays a dated, source-
+specific history saved in GitHub. See [RATE_HISTORY.md](RATE_HISTORY.md).
+The static data library and the automatic API dataset are kept separate.
+
+**No employee data belongs in GitHub Pages, the public repository, reports,
+or examples. Only use fictitious manual figures.**

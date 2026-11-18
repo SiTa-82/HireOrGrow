@@ -255,3 +255,88 @@
 @media print{#decision .comparison-lead{background:#fff;box-shadow:none}.decision-chart-edit{display:none!important}.decision-chart-card{grid-template-rows:80px minmax(257px,1fr) 76px 73px}}
 /* Explicit column sizing keeps each chart track as wide as its card. */
 .decision-chart-bars{grid-template-columns:minmax(0,1fr)}
+
+
+/* v0.9.5 — exact vertical alignment of scenario rows AND bar tracks.
+   All cards reserve 3 identical slots; even scenarios without a lead time
+   receive an empty detail row, so their colored bar starts on the same y. */
+.decision-chart-card{
+  grid-template-rows:80px auto minmax(76px,auto) minmax(73px,auto) 44px;
+}
+.decision-chart-bars{
+  display:grid;
+  grid-template-columns:minmax(0,1fr);
+  grid-template-rows:repeat(3,94px);
+  gap:10px;
+  align-content:start;
+  min-height:302px;
+}
+.decision-bar-row{
+  min-height:0;
+  height:94px;
+  display:grid;
+  grid-template-rows:22px 19px 10px 18px;
+  align-content:start;
+  row-gap:4px;
+}
+.decision-bar-row--empty{visibility:hidden;pointer-events:none}
+.decision-bar-label{min-height:0;align-items:center;margin:0;line-height:1.3}
+.decision-bar-label>span{min-width:0}
+.decision-bar-detail,
+.decision-bar-detail--empty{
+  display:block!important;
+  margin:0!important;
+  line-height:19px;
+  min-height:19px;
+  font-size:11px!important;
+  color:#657e93!important;
+}
+.decision-bar-track{height:10px}
+.decision-lowest-tag,.decision-lowest-placeholder{
+  display:block;
+  height:18px;
+  line-height:18px;
+  margin:0;
+  font-size:11px;
+}
+@media(max-width:740px){
+  .decision-chart-card{grid-template-rows:auto auto auto auto 44px}
+  .decision-chart-bars{grid-template-rows:repeat(3,94px);grid-auto-rows:94px;min-height:302px}
+}
+@media print{
+  .decision-chart-card{grid-template-rows:80px 302px 76px 73px}
+}
+
+/* v0.9.6 shared salary assumptions and dated rate trend visualization */
+.comparison-controls{grid-template-columns:minmax(0,1.5fr) minmax(0,1fr) minmax(0,.9fr)}
+.financial-assumptions{background:#fff;border:1px solid #c6dbf0;border-radius:16px;padding:18px;margin:18px 0 16px;box-shadow:0 5px 15px rgba(25,74,129,.035)}
+.financial-assumptions-heading,.financial-actions,.rate-trends-head,.rate-trend-meta,.rate-trend-dates{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.financial-assumptions-heading h2{margin:0 0 6px;color:#153d68;font-size:18px}
+.financial-assumptions-heading p{margin:0 0 14px;color:#546e83;font-size:13px;line-height:1.55}
+.financial-fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.financial-fields .field{min-width:0}
+.financial-fields input{max-width:100%;width:100%}
+.financial-fields small{display:block;font-size:11px;color:#596f86;line-height:1.45;margin-top:7px;overflow-wrap:anywhere}
+.financial-status{margin-top:15px;border-left:3px solid #467cb5;background:#f2f7ff;border-radius:8px;padding:10px 13px;font-size:12px;line-height:1.55;color:#365675}
+.financial-actions{align-items:center;margin-top:14px;flex-wrap:wrap}
+.financial-actions span,.financial-citation{font-size:11px;color:#687d8f;line-height:1.5}
+.financial-citation{margin:10px 0 0}
+.financial-12mo{background:#f3f7fc;color:#365570;border:1px solid #d8e5f4;padding:13px;border-radius:10px;font-size:12px;line-height:1.55;margin-top:12px}
+.rate-trends{background:linear-gradient(180deg,#f9fcff,#fff);border:1px solid #c8dce8;border-radius:14px;padding:17px;margin:20px 0}
+.rate-trends h3{margin:0 0 4px;color:#183c65;font-size:18px}
+.rate-trends-head p{color:#61798e;margin:0;font-size:12px}
+.rate-trend-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:13px 0}
+.rate-trend-card{border:1px solid #dce7ee;border-radius:12px;background:#fff;padding:13px;min-width:0}
+.rate-trend-meta{align-items:center;flex-wrap:wrap;font-size:12px;color:#263c51}
+.rate-trend-meta strong{overflow-wrap:anywhere}
+.rate-trend-units{font-size:11px;color:#6c8293;margin:8px 0}
+.rate-trend-amount{font-size:18px;font-weight:800;color:#154c7c;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.rate-trend-amount small{font-size:11px;font-weight:400;color:#718597}
+.rate-trend-card svg{display:block;width:100%;height:98px;margin-top:10px;background:#f6faff;border-radius:7px}
+.rate-trend-empty{display:flex;align-items:center;justify-content:center;text-align:center;min-height:95px;padding:13px;background:#f5f8fd;color:#6b8194;font-size:11px;border-radius:8px;margin-top:9px}
+.rate-trend-dates{color:#668197;font-size:10px;margin:7px 0}
+.rate-trend-card .marketnote{font-size:11px;line-height:1.5;margin-top:8px}
+.rate-trend-footnote{color:#65788b;font-size:11px;line-height:1.55;border-top:1px solid #dce7ee;padding-top:10px}
+@media(max-width:1000px){.financial-fields{grid-template-columns:repeat(2,minmax(0,1fr))}.rate-trend-grid{grid-template-columns:1fr}}
+@media(max-width:740px){.comparison-controls,.financial-fields{grid-template-columns:1fr}.financial-assumptions-heading,.rate-trends-head{flex-direction:column}.financial-actions{align-items:stretch}.rate-trend-dates{flex-wrap:wrap}}
+@media print{.financial-actions{display:none}.rate-trend-card svg{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
