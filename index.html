@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta content="default-src 'none'; base-uri 'none'; connect-src https://salarybyrole.com https://api.frankfurter.dev https://jobicy.com; img-src 'none'; font-src 'none'; object-src 'none'; form-action 'none'; style-src 'self'; script-src 'self'" http-equiv="Content-Security-Policy"/>
+<meta content="no-referrer" name="referrer"/>
+<meta charset="utf-8"/><meta content="width=device-width, initial-scale=1" name="viewport"/><title>TalentCost 0.5 — Live Salary Benchmark &amp; Internal Talent</title>
+<link href="./styles.css" rel="stylesheet"/>
+</head>
+<body>
+<div class="wrap"><header><div><div class="logo">TalentCost<span class="brand-dot">.</span></div><div class="tagline">Financial decision support for Talent Acquisition, HR and leadership</div></div><div class="scenario-location field"><label for="scenario-location">Scenario location</label><select aria-label="Scenario location" id="scenario-location"><option value="global">Global / cross-border</option><option value="eu">European Union (EU)</option><option value="united-states">United States (US)</option><option selected="" value="armenia">Armenia</option><option value="georgia">Georgia</option><option value="portugal">Portugal</option><option value="kazakhstan">Kazakhstan</option><option value="finland">Finland</option><option value="slovakia">Slovakia</option><option value="germany">Germany</option><option value="netherlands">Netherlands</option><option value="poland">Poland</option><option value="spain">Spain</option><option value="greece">Greece</option><option value="united-kingdom">United Kingdom</option><option value="singapore">Singapore</option><option value="india">India</option></select><span class="location-hint">Context only · no automatic local taxes or currency conversion</span></div><span class="badge">Live public API preview · v0.5</span></header>
+<div class="security-panel"><strong>Public market APIs enabled — use demo figures only</strong>Salary queries send role and selected country to SalaryByRole; Jobicy receives a role keyword, and Frankfurter receives currency codes. The manual Internal rate is not included in these requests. No credentials or storage. This is NOT an NDA-approved enterprise app; use fictional internal rates only.</div>
+<div class="nav" role="tablist"><button aria-selected="true" class="active" id="tab-hire" role="tab" type="button">01 · External vs. internal hire</button><button aria-selected="false" id="tab-replace" role="tab" type="button">02 · Retain vs. replace</button><button aria-selected="false" id="tab-market" role="tab" type="button">03 · Global Market Benchmark</button><button aria-selected="false" id="tab-talent" role="tab" type="button">04 · Promote vs. reskill</button></div>
+<section aria-labelledby="tab-hire" id="hire"><div class="grid">
+<div class="card"><div class="rowhead"><h1>Cost to fill a position</h1><div class="field field-currency"><label for="currency">Currency</label><select id="currency"><option value="USD">USD</option><option value="EUR">EUR</option><option value="AMD">AMD</option><option value="RUB">RUB</option><option value="GEL">GEL</option><option value="KZT">KZT</option><option value="GBP">GBP</option><option value="PLN">PLN</option></select></div></div><p class="minor scenario-context">Selected location: Armenia · Cost assumptions are entered manually.</p><p>Compare one-off costs of filling a role, including vacancy and ramp-up losses. Post-start salaries are excluded from these totals.</p>
+<div class="field field-role"><label for="role">Role / job title</label><input id="role" value="Senior Software Engineer"/></div>
+<div class="subcard"><h3>🌍 External candidate</h3><div class="fieldgrid">
+<div class="field"><label>Recruiting, job ads and interviews</label><input id="he-recruit" min="0" step="100" type="number" value="6000"/></div>
+<div class="field"><label>Paperwork and onboarding</label><input id="he-onboard" min="0" step="100" type="number" value="2000"/></div>
+<div class="field"><label>Vacancy-related productivity loss</label><input id="he-vacancy" min="0" step="100" type="number" value="8000"/></div>
+<div class="field"><label>Ramp-up productivity loss</label><input id="he-ramp" min="0" step="100" type="number" value="4000"/></div>
+<div class="field"><label>Time to start, days</label><input id="he-days" min="0" step="1" type="number" value="60"/></div>
+</div></div>
+<div class="subcard"><h3>🏢 Internal candidate</h3><div class="fieldgrid">
+<div class="field"><label>Internal selection and assessment</label><input id="hi-recruit" min="0" step="100" type="number" value="1200"/></div>
+<div class="field"><label>Retraining and onboarding</label><input id="hi-onboard" min="0" step="100" type="number" value="1000"/></div>
+<div class="field"><label>Loss before role transition</label><input id="hi-vacancy" min="0" step="100" type="number" value="3000"/></div>
+<div class="field"><label>Ramp-up productivity loss</label><input id="hi-ramp" min="0" step="100" type="number" value="1500"/></div>
+<div class="field"><label>Backfill of previous role*</label><input id="hi-backfill" min="0" step="100" type="number" value="4500"/></div>
+<div class="field"><label>Time to transition, days</label><input id="hi-days" min="0" step="1" type="number" value="30"/></div>
+</div></div><p class="minor with-top-gap">* Total incremental economic cost of the gap created in the original team (if that position must be filled). Avoid counting the same cost twice.</p>
+</div>
+<div class="card"><h2>CEO summary</h2><div class="resultmain"><div class="lead" id="hire-lead">Cost difference</div><div class="number" id="hire-delta">—</div><div class="lead" id="hire-take">—</div></div>
+<div class="duo"><div class="metric"><label>External candidate · transition</label><strong id="hire-external">—</strong></div><div class="metric"><label>Internal candidate · transition</label><strong id="hire-internal">—</strong></div></div>
+<div class="barrow"><div class="barhead"><span>External</span><strong id="he-value">—</strong></div><div class="track"><div class="fill second" id="he-bar"></div></div><div class="barhead"><span>Internal</span><strong id="hi-value">—</strong></div><div class="track"><div class="fill" id="hi-bar"></div></div></div>
+<div class="explain" id="hire-summary"></div>
+<div class="disclaimer"><strong>Important:</strong> this is the cost of <em>filling the position</em>, not the full employee budget. Also compare market compensation, candidate readiness, risks and business value. An internal candidate is not always cheaper once backfill is considered.</div>
+<div class="actions"><button class="action primary" id="copy-hire" type="button">Copy summary</button><button class="action" id="print-hire" type="button">Print / PDF</button></div>
+</div></div></section>
+<section aria-labelledby="tab-replace" class="hide" id="replace"><div class="grid">
+<div class="card"><div class="rowhead"><h1>Retain or replace?</h1><span class="pill" id="r-currency">USD</span></div><p class="minor scenario-context">Selected location: Armenia · Cost assumptions are entered manually.</p><p>Compare two scenarios over the selected horizon. No employee names, personal ratings or automated termination decisions.</p>
+<div class="fieldgrid">
+<div class="field"><label>Planning horizon</label><select id="r-months"><option value="12">12 months</option><option value="24">24 months</option><option value="36">36 months</option></select></div>
+<div class="field"><label>Role</label><input id="r-role" value="Senior Software Engineer"/></div></div>
+<div class="subcard"><h3>🤝 Scenario A · retain</h3><div class="fieldgrid">
+<div class="field"><label>Current annual total employer cost</label><input id="r-pay" min="0" step="100" type="number" value="48000"/></div>
+<div class="field"><label>Annual salary increase / allowance</label><input id="r-raise" min="0" step="100" type="number" value="5000"/></div>
+<div class="field"><label>One-off retention / development cost</label><input id="r-train" min="0" step="100" type="number" value="0"/></div></div></div>
+<div class="subcard"><h3>🔁 Scenario B · replace</h3><div class="fieldgrid">
+<div class="field"><label>New hire annual total employer cost</label><input id="r-newpay" min="0" step="100" type="number" value="60000"/></div>
+<div class="field"><label>Vacancy duration, months</label><input id="r-empty" max="36" min="0" step="0.5" type="number" value="2"/></div>
+<div class="field"><label>Recruiting and interviews</label><input id="r-recruit" min="0" step="100" type="number" value="6000"/></div>
+<div class="field"><label>Severance and paperwork</label><input id="r-exit" min="0" step="100" type="number" value="4000"/></div>
+<div class="field"><label>New employee onboarding</label><input id="r-onboard" min="0" step="100" type="number" value="2000"/></div>
+<div class="field"><label>Productivity loss during vacancy</label><input id="r-vacancy" min="0" step="100" type="number" value="8000"/></div>
+<div class="field"><label>Productivity loss during ramp-up</label><input id="r-ramp" min="0" step="100" type="number" value="4000"/></div></div></div>
+</div><div class="card"><h2>CEO financial scenario</h2>
+<div class="resultmain"><div class="lead" id="r-title">Economic cost difference</div><div class="number" id="r-delta">—</div><div class="lead" id="r-summary">—</div></div>
+<div class="duo"><div class="metric"><label>Retain · total</label><strong id="r-keep">—</strong></div><div class="metric"><label>Replace · total</label><strong id="r-replace">—</strong></div></div>
+<h3>What drives the difference</h3><div class="duo"><div class="metric"><label>Incremental replacement cash cost*</label><strong id="r-cash">—</strong></div><div class="metric"><label>Vacancy and ramp-up productivity loss</label><strong id="r-loss">—</strong></div></div>
+<div class="barrow"><div class="barhead"><span>Retain</span><strong id="r-keep-v">—</strong></div><div class="track"><div class="fill" id="r-keepbar"></div></div><div class="barhead"><span>Replace</span><strong id="r-repl-v">—</strong></div><div class="track"><div class="fill second" id="r-replacebar"></div></div></div>
+<div class="explain" id="r-narrative"></div><div class="disclaimer"><strong>Key assumptions:</strong> The vacancy begins when the employee leaves; new-hire salary begins after the position is filled. Severance is entered separately. Productivity loss is a business estimate, not necessarily a cash payment. Never double-count losses. Consider legal grounds, skills, risks, alternatives and team impact. This model does not recommend terminating anyone.</div>
+<div class="actions"><button class="action primary" id="copy-replace" type="button">Copy summary</button><button class="action" id="print-replace" type="button">Print / PDF</button></div><p class="minor">* Incremental replacement cash cost = cash costs of the replacement scenario, excluding productivity losses, minus the retain scenario budget. Negative means lower direct cash costs.</p>
+</div></div></section>
+<section aria-labelledby="tab-talent" class="hide" id="talent"><div class="grid">
+<div class="card">
+<p class="minor scenario-context">Selected location: Armenia · Cost assumptions are entered manually.</p><div class="rowhead"><h1>External hire, promotion or reskilling</h1><span class="pill">Incremental Cost</span></div>
+<p>Compare three ways to fill the same target role. An internal move is measured against the existing payroll baseline; the vacated role may need a separate backfill.</p>
+<div class="fieldgrid">
+<div class="field"><label for="t-role">Target role</label><input id="t-role" value="DevOps Engineer"/></div>
+<div class="field"><label for="t-horizon">Horizon</label><select id="t-horizon"><option value="12">12 months</option><option value="24">24 months</option><option value="36">36 months</option></select></div>
+</div>
+<div class="subcard"><h3>🌍 A · Hire externally</h3><div class="fieldgrid">
+<div class="field"><label>New hire total employer cost / year</label><input id="t-e-new" min="0" step="100" type="number" value="90000"/></div>
+<div class="field"><label>Months until start</label><input id="t-e-delay" min="0" step="0.5" type="number" value="2"/></div>
+<div class="field"><label>Sourcing and interviews</label><input id="t-e-recruit" min="0" step="100" type="number" value="7000"/></div>
+<div class="field"><label>Onboarding</label><input id="t-e-onboard" min="0" step="100" type="number" value="2500"/></div>
+<div class="field"><label>Vacancy-related loss*</label><input id="t-e-vacancy" min="0" step="100" type="number" value="6000"/></div>
+<div class="field"><label>Ramp-up loss*</label><input id="t-e-ramp" min="0" step="100" type="number" value="3000"/></div>
+</div></div>
+<div class="subcard"><h3>📈 B · Promote an employee</h3><div class="fieldgrid">
+<div class="field"><label>Current total employer cost / year</label><input id="t-p-old" min="0" step="100" type="number" value="60000"/></div>
+<div class="field"><label>New total employer cost / year</label><input id="t-p-new" min="0" step="100" type="number" value="78000"/></div>
+<div class="field"><label>Months until transition</label><input id="t-p-delay" min="0" step="0.5" type="number" value="1"/></div>
+<div class="field"><label>Assessment and transition administration</label><input id="t-p-admin" min="0" step="100" type="number" value="1000"/></div>
+<div class="field"><label>Training / development</label><input id="t-p-train" min="0" step="100" type="number" value="2000"/></div>
+<div class="field"><label>Previous role backfill / year, if needed</label><input id="t-p-backfill" min="0" step="100" type="number" value="48000"/></div>
+<div class="field"><label>One-off backfill cost</label><input id="t-p-backfill-one" min="0" step="100" type="number" value="3500"/></div>
+<div class="field"><label>Loss in target role*</label><input id="t-p-loss" min="0" step="100" type="number" value="3000"/></div>
+<div class="field"><label>Loss in previous role*</label><input id="t-p-oldloss" min="0" step="100" type="number" value="1500"/></div>
+</div></div>
+<div class="subcard"><h3>🎓 C · Reskill an employee</h3><div class="fieldgrid">
+<div class="field"><label>Current total employer cost / year</label><input id="t-s-old" min="0" step="100" type="number" value="56000"/></div>
+<div class="field"><label>Total employer cost after reskilling / year</label><input id="t-s-new" min="0" step="100" type="number" value="80000"/></div>
+<div class="field"><label>Months until ready</label><input id="t-s-delay" min="0" step="0.5" type="number" value="4"/></div>
+<div class="field"><label>Courses and certifications</label><input id="t-s-train" min="0" step="100" type="number" value="10000"/></div>
+<div class="field"><label>Mentor time / internal training</label><input id="t-s-mentor" min="0" step="100" type="number" value="5000"/></div>
+<div class="field"><label>Productivity loss during training*</label><input id="t-s-learning-loss" min="0" step="100" type="number" value="2000"/></div>
+<div class="field"><label>Previous role backfill / year, if needed</label><input id="t-s-backfill" min="0" step="100" type="number" value="45000"/></div>
+<div class="field"><label>One-off backfill cost</label><input id="t-s-backfill-one" min="0" step="100" type="number" value="3500"/></div>
+<div class="field"><label>Vacancy and ramp-up loss*</label><input id="t-s-newloss" min="0" step="100" type="number" value="14000"/></div>
+<div class="field"><label>Loss in previous role*</label><input id="t-s-oldloss" min="0" step="100" type="number" value="1500"/></div>
+</div></div>
+<p class="minor">* Productivity losses are Finance estimates, not cash payments. Do not double-count training, mentoring time, employee absence and lost productivity. All figures are illustrative.</p>
+</div>
+<div class="card">
+<h2>CEO comparison</h2>
+<div class="security-panel"><strong>🔒 Offline-by-default</strong>This version makes no network requests and does not store inputs in a database. Do not enter real NDA-protected data without Security/Legal approval: a local HTML file has no corporate authentication, access log or encryption.</div>
+<div class="resultmain"><div class="lead">Lowest estimated incremental cost</div><div class="number" id="t-min">—</div><div class="lead" id="t-winner">—</div></div>
+<div class="scenario-grid">
+<div class="scenario-card" id="t-e-card"><span>External hire</span><strong id="t-e-total">—</strong><small id="t-e-brief">—</small></div>
+<div class="scenario-card" id="t-p-card"><span>Promotion</span><strong id="t-p-total">—</strong><small id="t-p-brief">—</small></div>
+<div class="scenario-card" id="t-s-card"><span>Reskilling</span><strong id="t-s-total">—</strong><small id="t-s-brief">—</small></div>
+</div>
+<h3>Calculation breakdown</h3><div id="t-breakdown"></div>
+<div class="explain" id="t-narrative"></div>
+<div class="disclaimer"><strong>Comparison rule:</strong> Calculates the change in total costs versus the baseline where existing employees stay in their previous positions and the target position remains unfilled. An external hire adds a full position cost. An internal move counts <strong>new payroll − previous payroll + required backfill</strong> after the transition, plus direct expenses and estimated losses. Set backfill to zero if the former position will not be replaced, and assess the operational impact separately. This is not a skill assessment or an automated HR recommendation.</div>
+<div class="actions"><button class="action primary" id="t-copy" type="button">Copy scenario</button><button class="action" id="t-print" type="button">Print / PDF</button></div>
+<p class="minor">Copying or printing moves data outside the app. Follow your company DLP policy and check where PDFs are stored.</p>
+</div></div></section>
+<section aria-labelledby="tab-market" class="hide" id="market">
+<div class="marketgrid">
+<div class="card marketsettings">
+<div class="rowhead"><h1>Global Market Benchmark</h1><span class="pill">Salary intelligence</span></div>
+<p>Live salary estimates from an open API, recent public remote job ads and current reference FX rates. Click Refresh or change the selection. No paid provider credentials required.</p>
+<div class="fieldgrid">
+<div class="field"><label for="m-role">Position</label><select id="m-role" title="Country benchmarks use exact SalaryByRole role names. Unsupported positions show no country benchmark."><option value="devops-engineer">DevOps Engineer</option><option value="software-engineer">Software Engineer</option><option value="cloud-architect">Cloud Architect</option><option value="data-scientist">Data Scientist</option><option value="site-reliability-engineer">Site Reliability Engineer (coverage unverified)</option></select></div>
+<div class="field"><label for="m-grade">Level</label><select id="m-grade"><option value="mid">Mid-level · 3–5 years</option><option value="junior">Junior</option><option value="senior">Senior</option></select></div>
+<div class="field"><label for="m-reportcur">Display currency (Frankfurter FX)</label><select id="m-reportcur"><option>EUR</option><option>USD</option><option>AMD</option><option>PLN</option><option>GBP</option><option value="GEL">GEL</option><option value="KZT">KZT</option></select></div>
+<div class="field"><label for="m-burden">Optional employer overhead assumption, %</label><input id="m-burden" max="250" min="0" placeholder="Optional; not a tax calculation" step="0.5" type="number"/></div>
+</div>
+<div class="subcard"><h3>Select markets</h3><div aria-label="Market selection presets" class="preset-row" role="group"><button aria-pressed="true" class="preset active" data-preset="custom" type="button">Custom</button><button aria-pressed="false" class="preset" data-preset="eu" type="button">EU</button><button aria-pressed="false" class="preset" data-preset="us" type="button">US</button><button aria-pressed="false" class="preset" data-preset="global" type="button">Global</button><button aria-pressed="false" class="preset" data-preset="clear" type="button">Clear</button></div><p class="minor preset-note">Presets select countries, not invented aggregate salaries. EU and Global show only covered country results when the external source returns data.</p><div class="locs">
+<label class="loccheck"><input checked="" class="m-country" type="checkbox" value="germany"/>🇩🇪 Germany</label>
+<label class="loccheck"><input checked="" class="m-country" type="checkbox" value="netherlands"/>🇳🇱 Netherlands</label>
+<label class="loccheck"><input checked="" class="m-country" type="checkbox" value="portugal"/>🇵🇹 Portugal</label>
+<label class="loccheck"><input checked="" class="m-country" type="checkbox" value="poland"/>🇵🇱 Poland</label>
+<label class="loccheck"><input checked="" class="m-country" type="checkbox" value="armenia"/>🇦🇲 Armenia</label>
+<label class="loccheck"><input class="m-country" type="checkbox" value="spain"/>🇪🇸 Spain</label>
+<label class="loccheck"><input class="m-country" type="checkbox" value="greece"/>🇬🇷 Greece</label>
+<label class="loccheck"><input class="m-country" type="checkbox" value="united-states"/>🇺🇸 United States</label>
+<label class="loccheck"><input class="m-country" type="checkbox" value="united-kingdom"/>🇬🇧 United Kingdom</label>
+<label class="loccheck"><input class="m-country" type="checkbox" value="singapore"/>🇸🇬 Singapore</label>
+<label class="loccheck"><input class="m-country" type="checkbox" value="india"/>🇮🇳 India</label>
+<label class="loccheck"><input checked="" class="m-country" type="checkbox" value="georgia"/> 🇬🇪 Georgia</label><label class="loccheck"><input checked="" class="m-country" type="checkbox" value="kazakhstan"/> 🇰🇿 Kazakhstan</label><label class="loccheck"><input checked="" class="m-country" type="checkbox" value="finland"/> 🇫🇮 Finland</label><label class="loccheck"><input checked="" class="m-country" type="checkbox" value="slovakia"/> 🇸🇰 Slovakia</label></div></div>
+<div class="subcard" id="manual-rate-card"><h3>✍️ Internal rate <span class="pill">manual / optional</span></h3>
+<p class="minor">Enter one hypothetical internal rate for comparison. The rate stays in this browser tab and is never sent to salary providers. No hiring history, employee records or CSV uploads.</p>
+<div class="fieldgrid">
+<div class="field"><label for="m-home">Internal rate country</label><select id="m-home"><option value="united-states">United States (US)</option><option value="armenia">Armenia</option><option value="georgia">Georgia</option><option value="portugal">Portugal</option><option value="kazakhstan">Kazakhstan</option><option value="finland">Finland</option><option value="slovakia">Slovakia</option><option value="germany">Germany</option><option value="netherlands">Netherlands</option><option value="poland">Poland</option><option value="spain">Spain</option><option value="greece">Greece</option><option value="united-kingdom">United Kingdom</option><option value="singapore">Singapore</option><option value="india">India</option></select></div>
+<div class="field"><label for="m-history-cur">Internal rate currency</label><select id="m-history-cur"><option>EUR</option><option>USD</option><option>AMD</option><option>GEL</option><option>KZT</option><option>GBP</option><option>PLN</option></select></div>
+<div class="field"><label for="m-historical">Internal rate (optional)</label><input id="m-historical" min="0" placeholder="e.g. 65000" step="100" type="number"/></div>
+<div class="field"><label for="m-rate-basis">Rate unit</label><select id="m-rate-basis"><option value="annual">Annual gross</option><option value="monthly">Monthly gross × 12</option><option value="hourly">Hourly gross × 2,080</option></select></div><div class="field"><label for="m-rate-type">Internal rate type</label><select id="m-rate-type"><option value="salary">Gross base pay (annualized)</option><option value="billing">Billing / client rate (not comparable)</option></select></div>
+</div><p class="marketnote">The app does not verify salary basis. Hourly pay is annualized at 2,080 hours/year for illustration only; billable rates and fully-loaded costs are not comparable to employee salary benchmarks. Leave blank for no internal comparison.</p></div>
+<div class="actions reportbuttons"><button class="action" id="m-refresh" type="button">↻ Refresh live market data</button><button class="action" id="m-copy" type="button">Copy report</button><button class="action" id="m-print" type="button">Print / PDF</button></div>
+<div class="status" id="m-fetchstatus" role="status">Click “Refresh live market data” or open this tab to collect public salary estimates. Sources appear beside every estimate.</div>
+</div>
+<div class="card">
+<div class="marketheader"><div><h2 id="m-result-title">Global salary benchmarks</h2><p id="m-context">—</p></div><span class="pill" id="m-rate-date">FX: not loaded</span></div>
+<div class="kpirow"><div class="metric"><label>Selected markets</label><strong id="m-locations">0</strong></div><div class="metric"><label>Country results with data</label><strong id="m-comparable">0</strong></div><div class="metric"><label>Internal history</label><strong id="m-internal">Not entered</strong></div></div>
+<div class="market-summary" id="m-ceo">Live results are sourced from SalaryByRole. Each country record will include attribution, date, salary type and a provider link.</div>
+<div id="m-results">No live salary data fetched yet.</div><div class="subcard" id="m-jobicy-box"><div class="rowhead"><h3>Recent remote vacancy salaries</h3><span class="pill" id="m-jobicy-count">Jobicy · waiting</span></div><p class="marketnote">Separate signal: publicly listed remote jobs in Jobicy’s recent 7-day feed, only when the job posting actually discloses salary. Remote eligibility does not establish a local salary. Job ads are never mixed into country salary benchmarks.</p><div class="remote-list" id="m-jobicy-results">No remote job listings fetched yet.</div><div class="src"><span>Data source: <a href="https://jobicy.com/jobs-rss-feed" rel="noopener noreferrer" target="_blank">Jobicy public Jobs API ↗</a> · Individual offer links are below each listing.</span></div></div>
+<div class="disclaimer"><strong>Interpretation:</strong> The country ranges are salary estimates supplied by SalaryByRole, not verified offers. Check their methodology and pay basis before budgeting. Source publication date and year are shown per result. Remote Jobicy ads are shown separately and must not be interpreted as local salary benchmarks. The overhead field is your own assumption, not a tax calculator. Only use fictional internal figures on public hosting.</div>
+<div class="subcard"><h3>Data feeds and attribution</h3><div class="srcrow"><a href="https://salarybyrole.com/data/api" rel="noopener noreferrer" target="_blank">SalaryByRole · CC BY 4.0</a><span class="pill">live country/level salary estimates</span></div><div class="srcrow"><a href="https://jobicy.com/jobs-rss-feed" rel="noopener noreferrer" target="_blank">Jobicy · public API</a><span class="pill">recent remote vacancies, separate sample</span></div><div class="srcrow"><a href="https://frankfurter.dev" rel="noopener noreferrer" target="_blank">Frankfurter · reference FX</a><span class="pill">current published rate date</span></div><div class="marketnote">Country figures are aggregated estimates, not observed offers or a guaranteed market median. Some countries or role categories may not be covered. If a source fails, shows no salary, or FX is unavailable, the app displays that limitation rather than inventing a number.</div></div>
+</div></div>
+</section>
+<div class="footer">TalentCost · demo 0.5 · public market queries enabled; no database, no authentication or persistent storage. Manual Internal rate stays in page memory but copying/printing can expose it. Use sample internal data only. Public endpoints may be unavailable due to CORS, network policy, outages or source limits. Financial calculators do not convert currencies or apply local taxes automatically.</div>
+</div>
+<script src="./app.js"></script></body></html>

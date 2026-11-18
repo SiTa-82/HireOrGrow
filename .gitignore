@@ -1,0 +1,18 @@
+# Never commit company data, credentials, or individual compensation data
+.env
+.env.*
+*.key
+*.pem
+*.p12
+*.pfx
+secrets/
+private/
+company-data/
+internal-exports/
+real-payroll/
+*.sqlite
+*.db
+__pycache__/
+.pytest_cache/
+playwright-report/
+test-results/
