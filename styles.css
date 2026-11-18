@@ -340,3 +340,20 @@
 @media(max-width:1000px){.financial-fields{grid-template-columns:repeat(2,minmax(0,1fr))}.rate-trend-grid{grid-template-columns:1fr}}
 @media(max-width:740px){.comparison-controls,.financial-fields{grid-template-columns:1fr}.financial-assumptions-heading,.rate-trends-head{flex-direction:column}.financial-actions{align-items:stretch}.rate-trend-dates{flex-wrap:wrap}}
 @media print{.financial-actions{display:none}.rate-trend-card svg{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
+
+/* v0.9.7 — salary period toggle and explicit chart cost horizons. */
+.financial-heading-controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+.financial-period-field{min-width:165px}
+.financial-period-field select{width:100%;font-weight:700;background:#eff6ff;color:#173c66;border:1px solid #86acda;border-radius:9px;padding:9px 12px}
+.financial-period-field label{font-size:12px;color:#3e607f}
+.decision-chart-head{min-height:95px}
+.decision-period-pill{display:inline-flex;margin-top:8px;padding:3px 8px;border-radius:20px;background:#e7f1ff;color:#1b528c;border:1px solid #c8def8;font-size:10px;font-weight:800;letter-spacing:.02em}
+.decision-bar-label{align-items:start}
+.decision-bar-money{display:flex;flex-direction:column;align-items:flex-end;gap:1px;text-align:right}
+.decision-bar-money strong{white-space:nowrap;font-size:13px}
+.decision-bar-money small{font-size:10px;font-weight:500;color:#62809c;white-space:nowrap}
+.decision-bar-row{grid-template-rows:33px 19px 10px 18px;height:105px}
+.decision-chart-bars{grid-template-rows:repeat(3,105px);min-height:335px}
+.decision-chart-card{grid-template-rows:100px 335px minmax(76px,auto) minmax(73px,auto) 44px}
+@media(max-width:740px){.financial-heading-controls{width:100%;align-items:flex-start;justify-content:flex-start}.decision-chart-card{grid-template-rows:auto auto auto auto 44px}.decision-chart-bars{grid-template-rows:repeat(3,105px);min-height:335px}}
+@media print{.decision-chart-card{grid-template-rows:100px 335px 76px 73px}}

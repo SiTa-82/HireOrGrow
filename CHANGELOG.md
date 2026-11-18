@@ -1,3 +1,9 @@
+## v0.9.7 — Pay rate periods & chart horizons
+- Monthly / Annual display switch for market and internal gross pay and promotion raise. Source records in monthly gross format are annualized ×12; annual ones shown monthly ÷12.
+- Canonical annual values prevent conversion drift and preserve unchanged financial outputs when toggling.
+- Per-scenario chart figures explicitly labelled as one-time cost, N-month total or N-month incremental.
+- Gross/net/CTC limitations unchanged; no private data sent to APIs.
+
 ## v0.9.5 — Aligned decision chart tracks (UI fix)
 - Standardized the vertical positions of scenario labels, lead-time details, colored bars, and lowest-cost tags across all three decision cards.
 - Reserved blank lead-time lines for scenarios without readiness times and invisible third slots for two-option comparisons.

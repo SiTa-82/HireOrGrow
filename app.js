@@ -40,6 +40,8 @@ function renderDecisionOverview(){
    const tied=winners.length>1;
    const maxVal=Math.max(1,...options.map(o=>Math.max(0,o.cost)));
    const key=group.key;
+   const costPeriod=group.key==='hire'?'One-Time Cost':group.key==='replace'?`${n('r-months')}-Month Total Cost`:`${n('t-horizon')}-Month Incremental Cost`;
+   const perValue=group.key==='hire'?'one-time':group.key==='replace'?`${n('r-months')}-month total`:`${n('t-horizon')}-month incremental`;
    const summary=tied?'Equal Lowest Modeled Costs':`${winners[0].name} · ${money(best)}`;
    const next= !tied && Number.isFinite(second)?`${money(Math.max(0,second-best))} Below Next Alternative`:'No Cost Difference';
    // Each card uses exactly three aligned scenario slots. Missing scenarios and
@@ -50,14 +52,14 @@ function renderDecisionOverview(){
       const isLowest=Math.abs(o.cost-best)<.005;
       const width=Math.max(0,Math.min(100,100*Math.max(o.cost,0)/maxVal));
       return `<div class="decision-bar-row" title="${safe(o.name)}: ${safe(money(o.cost))}">
-       <div class="decision-bar-label"><span>${safe(o.name)}</span><strong>${safe(money(o.cost))}</strong></div>
+       <div class="decision-bar-label"><span>${safe(o.name)}</span><span class="decision-bar-money"><strong>${safe(money(o.cost))}</strong><small>${safe(perValue)}</small></span></div>
        <span class="decision-bar-detail${o.detail?'':' decision-bar-detail--empty'}">${o.detail?safe(o.detail):'&nbsp;'}</span>
        <div class="decision-bar-track"><div class="decision-bar-fill ${isLowest?'lowest':''}" style="width:${width.toFixed(2)}%"></div></div>
        ${isLowest?'<span class="decision-lowest-tag">Lowest Modeled Cost</span>':'<span class="decision-lowest-placeholder" aria-hidden="true">&nbsp;</span>'}
       </div>`;
    }).join('');
    return `<article class="decision-chart-card" aria-label="${safe(group.title)} estimated costs">
-    <div class="decision-chart-head"><div><h3>${safe(group.title)}</h3><p>${safe(group.basis)}</p></div></div>
+    <div class="decision-chart-head"><div><h3>${safe(group.title)}</h3><p>${safe(group.basis)}</p><span class="decision-period-pill">${safe(costPeriod)}</span></div></div>
     <div class="decision-chart-bars">${bars}</div>
     <div class="decision-chart-summary"><b>${safe(summary)}</b><small>${safe(next)}</small></div>
     <p class="decision-chart-note">${safe(group.note)}</p>
@@ -80,14 +82,38 @@ function syncDecisionRole(source){
 }
 
 
-// v0.9.6: shared financial assumptions. Only a same-role/same-grade, annualized
+// v0.9.7: shared financial assumptions. Only a same-role/same-grade, annualized
 // GROSS benchmark may auto-populate a market pay input. Otherwise keep explicit
 // demo inputs or require a user-entered figure; never infer pay from NET or CTC.
 const finManual={market:false,internal:false,raise:false,training:false};
 let finSourceRecord=null;
 const FIN_DEMO_INTERNAL=48000,FIN_RAISE_PERCENT=.087,FIN_US_TRAIN=1023;
+// Keep salary and raise values in canonical ANNUAL units to prevent rounding
+// drift when switching Monthly <-> Annual. The display unit is presentation only.
+const finAnnualValues={market:null,internal:FIN_DEMO_INTERNAL,raise:FIN_DEMO_INTERNAL*FIN_RAISE_PERCENT};
+function finPeriodFactor(){return el('fin-period').value==='monthly'?12:1;}
 function fm(id){const raw=el(id)?.value;if(raw===''||raw===undefined)return null;const val=Number(raw);return Number.isFinite(val)&&val>=0?val:null;}
-function finField(id,val){el(id).value=Number.isFinite(val)?String(Math.round(val)):'';}
+function annualFin(key){return finAnnualValues[key];}
+function finField(id,valAnnual){
+ const key=id.slice('fin-'.length);
+ if(Object.prototype.hasOwnProperty.call(finAnnualValues,key))finAnnualValues[key]=Number.isFinite(valAnnual)?valAnnual:null;
+ const isSalary=Object.prototype.hasOwnProperty.call(finAnnualValues,key);
+ const displayed=Number.isFinite(valAnnual)?valAnnual/(isSalary?finPeriodFactor():1):null;
+ // Visual rounding is not fed back into the underlying annual financial model.
+ el(id).value=displayed===null?'':String(Math.round(displayed*100)/100);
+}
+function renderFinPeriod(){
+ const unit=el('fin-period').value==='monthly'?'Month':'Year';
+ set('fin-market-label',`Market Gross Rate / ${unit}`);
+ set('fin-internal-label',`Internal Gross Rate / ${unit}`);
+ set('fin-raise-label',`Promotion / Retention Raise / ${unit}`);
+ set('fin-raise-note',finManual.raise?'Custom raise entered manually; shown per '+unit.toLowerCase()+'.':'Default: 8.7% of internal gross pay, shown per '+unit.toLowerCase()+' (Mercer US promotion survey).');
+}
+function switchFinPeriod(){
+ renderFinPeriod();
+ for(const key of Object.keys(finAnnualValues))finField('fin-'+key,finAnnualValues[key]);
+ applyFinancialAssumptions();
+}
 function financialMarketCandidate(){
  const loc=el('scenario-location').value,grade=el('decision-grade').value,role=el('decision-role').value;
  if(!MARKETS[loc])return null;
@@ -97,6 +123,7 @@ function financialMarketCandidate(){
  return candidates[0]||null;
 }
 function refreshFinancialBenchmark(opts={}){
+ renderFinPeriod();
  if(opts.reset){Object.keys(finManual).forEach(k=>finManual[k]=false)}
  const cur=currency(),r=financialMarketCandidate();finSourceRecord=r;
  const marketAnnual=r?((r.median!==null&&r.median!==undefined?Number(r.median):(Number(r.low)+Number(r.high))/2)*(r.period==='month'?12:1)):null;
@@ -104,13 +131,13 @@ function refreshFinancialBenchmark(opts={}){
  if(!finManual.market){finField('fin-market',converted)}
  let src=!r?'No same-role, same-level GROSS market reference. Enter a market rate manually.':
    converted===null?`Source: ${r.source}. FX unavailable for ${r.currency} → ${cur}; enter manually.`:
-   `${r.source} · ${r.publishedDate||'date not supplied'} · ${r.median!==null&&r.median!==undefined?'source median':'range midpoint (not statistical mean)'} · original ${r.currency} ${r.period}.`;
+   `${r.source} · ${r.publishedDate||'date not supplied'} · ${r.median!==null&&r.median!==undefined?'source median':'range midpoint (not statistical mean)'} · original ${r.currency} / ${r.period}; ${r.period==='month'?'monthly source × 12 for annual cost model':el('fin-period').value==='monthly'?'annual source ÷ 12 for monthly display':'annual source unchanged'}. Gross only.`;
  if(finManual.market)src='Manually entered market rate (not source-verified). Original benchmark: '+src;
  set('fin-market-source',src);
- const reference= fm('fin-market');
+ const reference=annualFin('market');
  if(!finManual.internal){finField('fin-internal',reference!==null?reference:FIN_DEMO_INTERNAL)}
  set('fin-internal-note',reference!==null&&!finManual.internal?'Default matches the verified market-rate input. Edit for your organization.':'Illustrative starting rate only; NOT a verified local average. Edit manually.');
- if(!finManual.raise){finField('fin-raise',(fm('fin-internal')||0)*FIN_RAISE_PERCENT)}
+ if(!finManual.raise){finField('fin-raise',(annualFin('internal')||0)*FIN_RAISE_PERCENT)}
  let trainingVal=cur==='USD'?FIN_US_TRAIN:typeof convertMoney==='function'?convertMoney(FIN_US_TRAIN,'USD',cur):null;
  if(!finManual.training){finField('fin-training',trainingVal)}
  set('fin-training-note',trainingVal===null&& !finManual.training?'USD training average cannot be converted: enter a budget manually.':
@@ -118,7 +145,7 @@ function refreshFinancialBenchmark(opts={}){
  applyFinancialAssumptions();
 }
 function applyFinancialAssumptions(){
- const grossInternal=fm('fin-internal'),grossMarket=fm('fin-market'),raise=fm('fin-raise'),training=fm('fin-training');
+ const grossInternal=annualFin('internal'),grossMarket=annualFin('market'),raise=annualFin('raise'),training=fm('fin-training');
  const overhead=Math.max(0,Math.min(250,fm('fin-overhead')||0));
  const multiplier=1+overhead/100;
  // Existing models use estimated EMPLOYER expense, not pure salary. Since
@@ -165,7 +192,7 @@ function calculateHire(){
    (external===internal?'Both scenarios have the same modeled cost.':`${winner} has ${money(diff)} lower modeled cost.`)+
    ` Time to start: external ${n('he-days')} days, internal ${n('hi-days')} days. Lead time is contextual and not charged again. Backfilling the internal candidate’s prior role is estimated at ${money(n('hi-backfill'))}. Annual salary and candidate readiness require separate analysis.`;
   set('hire-summary',narrative);
-  const mr=fm('fin-market'),ir=fm('fin-internal'),inc=fm('fin-raise')||0;
+  const mr=annualFin('market'),ir=annualFin('internal'),inc=annualFin('raise')||0;
   const ov=1+(fm('fin-overhead')||0)/100;
   set('hire-payroll-12mo',mr!==null&&ir!==null?
    `Separate 12-month salary-inclusive projection (not included in the bars): external ${money(external+mr*ov)} vs. internal ${money(internal+(ir+inc)*ov)}. Assumes a full year of pay after start, so excludes vacancy timing; internal backfill remains in one-off costs. Validate with Finance.`:
@@ -252,9 +279,12 @@ el('currency').addEventListener('input',()=>{set('r-currency',currency());refres
 el('decision-grade').addEventListener('change',()=>{el('m-grade').value=el('decision-grade').value;refreshFinancialBenchmark();if(typeof renderMarket==='function')renderMarket();});
 for(const fld of ['market','internal','raise','training'])el('fin-'+fld).addEventListener('input',()=>{
   finManual[fld]=true;
-  if(fld==='internal'&&!finManual.raise){finField('fin-raise',(fm('fin-internal')||0)*FIN_RAISE_PERCENT)}
+  if(fld!=='training')finAnnualValues[fld]=fm('fin-'+fld)===null?null:fm('fin-'+fld)*finPeriodFactor();
+  if(fld==='internal'&&!finManual.raise){finField('fin-raise',(annualFin('internal')||0)*FIN_RAISE_PERCENT)}
+  if(fld==='raise')renderFinPeriod();
   applyFinancialAssumptions();
 });
+el('fin-period').addEventListener('change',switchFinPeriod);
 el('fin-overhead').addEventListener('input',applyFinancialAssumptions);
 el('fin-reset').addEventListener('click',()=>refreshFinancialBenchmark({reset:true}));
 el('scenario-location').addEventListener('change',()=>{updateScenarioLocation();refreshFinancialBenchmark()});

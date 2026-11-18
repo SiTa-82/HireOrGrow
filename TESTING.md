@@ -53,3 +53,10 @@ Version 0.9 adds a shared 43-position dropdown, independent chart comparisons an
 - Weekly GitHub Action must append and commit only public sources, then deploy
   the updated history file. Successful workflow != proof any API returned salary.
 - Test code: `python tests/test_rate_history.py` and `python tests/test_browser.py`.
+
+### v0.9.7 regression cases
+- Monthly default shows internal 4000 and raise 348 from annual 48000 and 4176.
+- Annual toggle shows 48000/4176, then Monthly restores 4000/348 with identical chart totals.
+- Existing monthly-gross salary records match the corresponding country/role/level and normalize to annual; NET never auto-populates market gross.
+- All three charts show the basis on their title badges and next to each numeric scenario amount; selected horizons update the labels.
+- One-off training budget remains the same when switching pay periods.
