@@ -203,3 +203,55 @@
 .top-nav-tab:focus-visible{outline:3px solid #284f7f;outline-offset:3px}
 @media (max-width:560px){.top-nav-tab{min-height:83px;padding:12px 13px}.top-nav-decision .top-nav-symbol,.top-nav-benchmarks .top-nav-symbol{width:43px;height:43px}.top-nav-symbol svg{width:24px;height:24px}}
 @media (prefers-reduced-motion:reduce){.top-nav-tab{transition:none}}
+
+
+/* v0.9.4 — polished Decision Comparison cards; no calculator math changes */
+#decision .comparison-lead{
+  background:linear-gradient(180deg,#f6faff 0%,#fbfdff 62%,#f7faff 100%);
+  border:1px solid #c7dcf5;
+  box-shadow:0 8px 22px rgba(46,91,146,.07);
+}
+#decision .eyebrow{color:#356dab}
+#decision .comparison-version{background:#e6f1ff;color:#315b8a}
+.decision-chart{align-items:stretch;gap:16px}
+.decision-chart-card{
+  border:1px solid #cbdff4;
+  border-top:3px solid #79a9d8;
+  background:#fff;
+  box-shadow:0 4px 12px rgba(40,79,119,.04);
+  padding:18px 17px 17px;
+  display:grid;
+  grid-template-rows:80px minmax(257px,1fr) minmax(76px,auto) minmax(73px,auto) 44px;
+  row-gap:12px;
+}
+.decision-chart-head{min-height:0;align-items:start;padding-bottom:9px;border-bottom:1px solid #e5eff9}
+.decision-chart-head h3{font-size:18px;font-weight:800;line-height:1.25;letter-spacing:-.2px;margin-bottom:6px;color:#173c66}
+.decision-chart-head p{font-size:12px;line-height:1.4;color:#537493}
+.decision-chart-bars{min-height:0;display:grid;grid-template-rows:repeat(3,minmax(66px,max-content));align-content:start;gap:10px}
+.decision-bar-row{min-height:66px}
+.decision-chart-summary{min-height:0;padding:13px 14px;justify-content:center;gap:5px}
+.decision-chart-summary b{font-size:13px;line-height:1.35}
+.decision-chart-summary small{font-size:12px;line-height:1.4}
+.decision-chart-note{min-height:0;font-size:12px;line-height:1.45;color:#63788b}
+.decision-bar-detail{font-size:11px!important;color:#657e93!important;margin-top:4px}
+.decision-chart-edit{
+  align-self:stretch;display:flex;align-items:center;justify-content:center;gap:9px;
+  width:100%;min-height:44px;padding:10px 12px;border-radius:10px;
+  border:1.5px solid #7ba7d5;background:#eaf3ff;color:#235e9a;
+  font-size:13px;font-weight:800;text-align:center;
+  transition:background-color .15s,box-shadow .15s,border-color .15s;
+}
+.decision-chart-edit:hover{background:#dcecff;border-color:#4279b6;box-shadow:0 4px 12px rgba(54,108,165,.14)}
+.decision-chart-edit:focus-visible{outline:3px solid #235e9a;outline-offset:3px}
+.decision-chart-edit:active{background:#cde2fc}
+.decision-edit-icon{font-size:18px;line-height:1}
+.decision-edit-arrow{font-size:16px;line-height:1}
+@media (max-width:740px){
+  .decision-chart-card{grid-template-rows:auto auto auto auto 44px;row-gap:12px}
+  .decision-chart-bars{grid-template-rows:none;grid-auto-rows:minmax(62px,auto)}
+  .decision-chart-head{min-height:0}
+}
+@media (prefers-reduced-motion:reduce){.decision-chart-edit{transition:none}}
+@media print{#decision .comparison-lead{background:#fff;box-shadow:none}.decision-chart-edit{display:none!important}.decision-chart-card{grid-template-rows:80px minmax(257px,1fr) 76px 73px}}
+/* Explicit column sizing keeps each chart track as wide as its card. */
+.decision-chart-bars{grid-template-columns:minmax(0,1fr)}

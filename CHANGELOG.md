@@ -1,3 +1,10 @@
+## v0.9.4 — Decision Comparison visual alignment
+
+- Styled decision cards with a subtle blue accent to match the Decision Comparison navigation.
+- Aligned headings, bars, conclusions and edit controls across the three cards.
+- Changed card headings and subtitles to Title Case, standardized month markers (days ÷ 30.44, approximate), and made the Edit Assumptions buttons prominent and keyboard accessible.
+- Preserved financial calculation formulas, Salary Benchmarks data and external source workflows.
+
 ## v0.9.3 — Open-source salary snapshots and clearer navigation
 
 - New scheduled public-API salary snapshots appear **in addition to** the 110 existing sourced salary references, which are not overwritten.
