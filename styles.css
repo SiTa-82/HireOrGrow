@@ -383,3 +383,13 @@
 .fin-edit-manual:hover{background:#e3f0ff}
 .fin-edit-manual:focus-visible{outline:3px solid #267fcd;outline-offset:2px}
 @media print{.fin-edit-manual{display:none!important}}
+
+/* v0.9.9 — Chart guidance belongs to the calculators, not Financial Assumptions. */
+.decision-calculators-section{margin-top:22px;padding-top:18px;border-top:1px solid #c9def2}
+.decision-calculators-heading{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.decision-calculators-heading h2{font-size:18px;color:#173c66;line-height:1.3;margin:0;font-weight:800}
+.decision-calculators-heading p{font-size:12px;color:#5b7391;line-height:1.5;margin:0}
+.decision-calculators-section .chart-disclaimer{border:1px solid #c8daef;border-left:4px solid #5a92d1;background:#f1f7ff;color:#365779;padding:12px 14px;border-radius:10px;margin:0 0 16px;line-height:1.6;font-size:12px}
+.decision-calculators-section .chart-disclaimer strong{color:#173c66}
+.decision-calculators-section .decision-chart{margin-top:0}
+@media(max-width:740px){.decision-calculators-heading{display:block}.decision-calculators-heading p{margin-top:6px}}

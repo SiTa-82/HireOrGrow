@@ -60,3 +60,7 @@ Version 0.9 adds a shared 43-position dropdown, independent chart comparisons an
 - Existing monthly-gross salary records match the corresponding country/role/level and normalize to annual; NET never auto-populates market gross.
 - All three charts show the basis on their title badges and next to each numeric scenario amount; selected horizons update the labels.
 - One-off training budget remains the same when switching pay periods.
+
+### v0.9.9 regression
+
+Check the chart disclaimer is inside `.decision-calculators-section` and below `.financial-assumptions`. Check context evidence for Junior vs Senior pay distinguishes requested level and source grade.

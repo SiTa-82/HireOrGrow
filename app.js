@@ -183,7 +183,10 @@ function renderFinancialEvidence(e,converted){
   }else description+='<p>Currency conversion is unavailable; enter your own gross estimate manually.</p>';
  }else if(e.kind==='context'){
   badge='<span class="fin-badge fin-badge--context">Context Only</span>';
-  description=`<p>This source is ${safe(String(r.basis).toUpperCase())} pay${r.roleScope!=='exact'?' or a broader occupation family':''}; it cannot be treated as employer gross cost. Enter a separately justified gross estimate manually. No automatic net-to-gross multiplier is applied.</p>`;
+  const requested=el('decision-grade').value;
+  const levelWarning=r.grade===requested?'The published seniority level matches the selection.':
+    `Requested ${safe(requested)} level; this source covers ${r.grade==='all'?'all levels together':safe(r.grade)+' level'} instead. No junior/senior adjustment is inferred.`;
+  description=`<p><strong>${levelWarning}</strong> The published pay basis is ${safe(String(r.basis).toUpperCase())}${r.roleScope!=='exact'?' and the occupation category is broader than your selection':''}. This can be viewed as market context, but it cannot be used directly as an employer gross cost. Enter a separately justified gross estimate manually. No automatic net-to-gross conversion is applied.</p>`;
  }else{
   badge='<span class="fin-badge fin-badge--none">Manual Estimate</span>';
   description='<p>No documented salary evidence for this country and occupation. Enter a gross market rate manually; no other role or country is substituted.</p>';

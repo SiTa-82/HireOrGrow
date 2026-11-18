@@ -1,3 +1,10 @@
+# HireOrGrow v0.9.9 — Calculator Guidance Placement
+
+- Moved **Read the charts independently** guidance from above Financial Assumptions to directly above the three Decision Calculators.
+- Clearly distinguishes one-time transition expenses, total cost, and incremental cost; the three scales are not comparable.
+- Clarified Junior / Senior context-only evidence messages: shows requested level and source coverage without inferring a different grade.
+- All existing formulas and datasets retained.
+
 ## v0.9.8 — Pay rate periods & chart horizons
 - Monthly / Annual display switch for market and internal gross pay and promotion raise. Source records in monthly gross format are annualized ×12; annual ones shown monthly ÷12.
 - Canonical annual values prevent conversion drift and preserve unchanged financial outputs when toggling.

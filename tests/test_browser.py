@@ -1,4 +1,4 @@
-"""Functional regression test for v0.9.6 financial assumptions and rate trends."""
+"""Functional regression test for v0.9.9 financial assumptions and rate trends."""
 import json
 from pathlib import Path
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
@@ -29,7 +29,7 @@ def main():
    page.route('https://hireorgrow.example/data/**',lambda route:route.fulfill(
        content_type='application/json',body=(ROOT/'data'/route.request.url.split('/data/')[1].split('?')[0]).read_text('utf8')))
    page.route('https://hireorgrow.example/data/automatic_market.json*',lambda route:route.fulfill(content_type='application/json',body=json.dumps({
-      'version':'0.9.6','generatedAt':'2026-11-18T14:00:00Z',
+      'version':'0.9.9','generatedAt':'2026-11-18T14:00:00Z',
       'providers':{'salarybyrole':{'status':'ok','records':3},'yubhub':{'status':'ok','records':1}},
       'salaryRecords':[{'country':'netherlands','role':'devops-engineer','grade':'mid','source':'SalaryByRole (automated API)',
        'url':'https://salarybyrole.com/api/salary?role=devops-engineer&country=netherlands','type':'aggregated_api_estimate',
@@ -42,13 +42,13 @@ def main():
        'observedDate':'2026-11-18','fetchedAt':'2026-11-18T14:00:00Z'}]
    })))
    html=(ROOT/'index.html').read_text('utf8')
-   html=html.replace('<link href="./styles.css?v=0.9.6" rel="stylesheet"/>','<style>'+(ROOT/'styles.css').read_text('utf8')+'</style>')
-   html=html.replace('<script src="./app.js?v=0.9.6"></script>','<script>'+(ROOT/'app.js').read_text('utf8')+'</script>')
-   html=html.replace('<script src="./market.js?v=0.9.6"></script>','<script>'+(ROOT/'market.js').read_text('utf8')+'</script>')
+   html=html.replace('<link href="./styles.css?v=0.9.9" rel="stylesheet"/>','<style>'+(ROOT/'styles.css').read_text('utf8')+'</style>')
+   html=html.replace('<script src="./app.js?v=0.9.9"></script>','<script>'+(ROOT/'app.js').read_text('utf8')+'</script>')
+   html=html.replace('<script src="./market.js?v=0.9.9"></script>','<script>'+(ROOT/'market.js').read_text('utf8')+'</script>')
    html=html.replace('http-equiv="Content-Security-Policy"','http-equiv="Test-Only-CSP"')
    html=html.replace('<head>','<head><base href="https://hireorgrow.example/">')
    page.set_content(html,wait_until='domcontentloaded')
-   assert '0.9.6' in page.title()
+   assert '0.9.9' in page.title()
    assert page.locator('#tab-decision').get_attribute('aria-selected')=='true'
    assert page.locator('#tab-decision .top-nav-symbol svg').count()==1
    assert page.locator('#tab-market .top-nav-symbol svg').count()==1
@@ -57,15 +57,72 @@ def main():
    assert page.locator('#decision-chart .decision-chart-icon').count()==0
    assert page.locator('#tab-market strong').text_content()=='Salary Benchmarks'
    assert page.locator('.chart-disclaimer').count()==1
+   assert page.locator('.decision-calculators-section > .chart-disclaimer').count()==1
+   assert page.locator('.financial-assumptions .chart-disclaimer').count()==0
+   assert page.locator('.chart-disclaimer').evaluate('(e) => !!(e.compareDocumentPosition(document.querySelector(".financial-assumptions")) & Node.DOCUMENT_POSITION_PRECEDING)')
    assert page.locator('.comparison-lead .chart-disclaimer').evaluate('(e) => e.compareDocumentPosition(document.querySelector("#decision-chart")) & Node.DOCUMENT_POSITION_FOLLOWING')
    assert 'Sets the country context' in page.locator('.location-hint').text_content()
    assert page.locator('#decision-role option').count()==43
    assert page.locator('#decision-role optgroup').count()==0
    assert page.locator('#decision-role').input_value()=='devops-engineer'
-   assert page.locator('#fin-internal').input_value()=='48000'
+   assert page.locator('#fin-internal').input_value()=='4000'
    assert page.locator('#fin-market').input_value()==''  # Armenia Mid DevOps has no gross reference
+   assert page.locator('#fin-raise').input_value()=='348'
+   assert page.locator('#fin-training').input_value()=='1023'
+   assert page.locator('#fin-period').input_value()=='monthly'
+   assert 'Market Gross Rate / Month' in page.locator('#fin-market-label').inner_text()
+   assert 'Context only' in page.locator('#fin-market-source').inner_text()
+   assert page.locator('#decision-chart .decision-period-pill').all_text_contents()==['One-Time Cost','12-Month Total Cost','12-Month Incremental Cost']
+   assert 'one-time' in page.locator('#decision-chart').inner_text()
+   assert '12-month total' in page.locator('#decision-chart').inner_text()
+   assert '12-month incremental' in page.locator('#decision-chart').inner_text()
+   # v0.9.9: verified/indicative/context are distinct and consent is explicit.
+   assert 'Context Only' in page.locator('#fin-source-review').inner_text()  # Armenia: senior NET
+   assert page.locator('#fin-use-indicative').count()==0
+   page.locator('#scenario-location').select_option('georgia')
+   assert 'Context Only' in page.locator('#fin-source-review').inner_text()  # Georgia: unspecified basis
+   assert page.locator('#fin-market').input_value()==''
+   page.locator('#scenario-location').select_option('slovakia')
+   assert 'Indicative Estimate' in page.locator('#fin-source-review').inner_text()
+   assert page.locator('#fin-market').input_value()==''  # NOT inserted without acceptance
+   assert page.locator('#fin-use-indicative').count()==1
+   page.locator('#fin-use-indicative').click()
+   assert float(page.locator('#fin-market').input_value())>3000
+   assert 'User-approved indicative' in page.locator('#fin-market-source').inner_text()
+   assert page.locator('#fin-use-indicative').count()==0
+   page.locator('#decision-grade').select_option('junior')
+   assert page.locator('#fin-market').input_value()==''  # approval revoked on grade change
+   assert page.locator('#fin-use-indicative').count()==1
+   page.locator('#scenario-location').select_option('portugal')
+   page.locator('#decision-grade').select_option('mid')
+   assert 'Verified Match' in page.locator('#fin-source-review').inner_text()
+   assert float(page.locator('#fin-market').input_value())>3000
+   assert page.locator('#fin-use-indicative').count()==0
+   page.locator('#scenario-location').select_option('armenia')
+   assert page.locator('#fin-market').input_value()==''
+   # The displayed evidence explains both the reason for non-insertion and a manual alternative.
+   assert 'Context Only' in page.locator('#fin-source-review').inner_text()
+   assert 'Enter a More Accurate Gross Rate Manually' in page.locator('#fin-source-review').inner_text()
+   page.locator('#fin-edit-manual').click()
+   assert page.locator('#fin-market').evaluate('(e)=>document.activeElement===e')
+   page.locator('#fin-market').fill('4300')
+   assert page.locator('#fin-market').input_value()=='4300'
+   assert 'Manual Estimate' in page.locator('#fin-source-review').inner_text()
+   assert 'not a verified market average' in page.locator('#fin-source-review').inner_text()
+   assert 'MANUAL' in page.locator('#fin-status').inner_text()
+   page.locator('#scenario-location').select_option('georgia')
+   assert page.locator('#fin-market').input_value()==''  # User-defined Armenia rate cannot cross country boundaries.
+   page.locator('#scenario-location').select_option('armenia')
+   first_costs=page.locator('#decision-chart .decision-bar-money strong').all_text_contents()
+   page.locator('#fin-period').select_option('annual')
+   assert page.locator('#fin-internal').input_value()=='48000'
    assert page.locator('#fin-raise').input_value()=='4176'
    assert page.locator('#fin-training').input_value()=='1023'
+   assert page.locator('#decision-chart .decision-bar-money strong').all_text_contents()==first_costs
+   page.locator('#fin-period').select_option('monthly')
+   assert page.locator('#fin-internal').input_value()=='4000'
+   assert page.locator('#fin-raise').input_value()=='348'
+   assert page.locator('#decision-chart .decision-bar-money strong').all_text_contents()==first_costs
    assert page.locator('#hire-external').text_content()=='$20,000'
    assert page.locator('#hire-internal').text_content()=='$11,223'
    assert page.locator('#r-keep').text_content()=='$53,199'
@@ -95,6 +152,7 @@ def main():
     assert max(tops)-min(tops)<2,(selector,tops)
    assert page.locator('.decision-chart-edit').first.evaluate('(e)=>getComputedStyle(e).backgroundColor')!='rgba(0, 0, 0, 0)'
 
+   page.locator('.financial-assumptions').screenshot(path=str(ROOT/'v097_period_switch.png'), animations='disabled')
    page.locator('#decision-chart').screenshot(path=str(ROOT/'v095_charts.png'), animations='disabled')
    page.screenshot(path=str(ROOT/'v09_dashboard.png'),full_page=False)
    assert page.locator('#hire-editor').is_visible()
@@ -104,16 +162,44 @@ def main():
    page.locator('#he-recruit').fill('9000')
    assert page.locator('#hire-external').text_content()=='$23,000'
    assert '$23,000' in page.locator('#decision-chart').inner_text()
+   page.locator('#fin-period').select_option('annual')
    # Readily available exact same-grade GROSS midpoint from Netherlands, with mocked FX.
    page.locator('#scenario-location').select_option('netherlands')
    page.wait_for_function("document.querySelector('#fin-market').value !== ''",timeout=15000)
    market_annual=float(page.locator('#fin-market').input_value())
    assert market_annual>50000,market_annual
-   assert float(page.locator('#r-newpay').input_value())==market_annual
+   assert abs(float(page.locator('#r-newpay').input_value())-market_annual)<1
    page.locator('#fin-raise').fill('9000')
    assert page.locator('#r-raise').input_value()=='9000'
    page.locator('#fin-training').fill('3000')
    assert page.locator('#t-s-train').input_value()=='3000'
+   # One-off training cost is never subject to the Monthly / Annual toggle.
+   page.locator('#fin-period').select_option('monthly')
+   assert page.locator('#fin-training').input_value()=='3000'
+   page.locator('#fin-period').select_option('annual')
+   assert page.locator('#fin-training').input_value()=='3000'
+   # Monthly GROSS source is normalized to annual employer cost. Test fixture
+   # stays in browser memory and is never written into public salary data.
+   page.locator('#decision-grade').select_option('junior')
+   page.locator('#decision-grade').select_option('mid')
+   page.evaluate("""() => {
+     referenceRecords.push({country:'netherlands', role:'devops-engineer',grade:'mid',basis:'gross',roleScope:'exact',
+       period:'month',low:4500,high:5500,median:5000,currency:'EUR',source:'SYNTHETIC TEST RECORD',
+       publishedDate:'2099-01-01',sample:40});
+     refreshFinancialBenchmark({reset:true});
+   }""")
+   assert 'SYNTHETIC TEST RECORD' in page.locator('#fin-market-source').inner_text()
+   assert page.locator('#fin-market').input_value()=='66667' or abs(float(page.locator('#fin-market').input_value())-66666.67)<1
+   page.locator('#fin-period').select_option('monthly')
+   assert abs(float(page.locator('#fin-market').input_value())-5555.56)<1
+   expected_annual_cost=float(page.locator('#r-newpay').input_value())
+   page.locator('#fin-period').select_option('annual')
+   assert float(page.locator('#r-newpay').input_value())==expected_annual_cost
+   # Restore real documents before continuing through role-sync tests.
+   page.evaluate("""() => {
+     referenceRecords=referenceRecords.filter(r=>r.source!=='SYNTHETIC TEST RECORD');
+     refreshFinancialBenchmark({reset:true});
+   }""")
    page.locator('#decision-role').select_option('bioinformatics-engineer')
    assert page.locator('#m-role').input_value()=='bioinformatics-engineer'
    assert page.locator('#r-role').input_value()=='Bioinformatics Engineer'
