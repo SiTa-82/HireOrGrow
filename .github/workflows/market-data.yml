@@ -1,0 +1,40 @@
+name: Publish HireOrGrow with updated Georgia vacancy data
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    - cron: '23 7 * * 1-5'  # weekdays, source changes hourly
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: hireorgrow-pages
+  cancel-in-progress: true
+jobs:
+  collect-and-publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Collect openly crawlable Georgian job data
+        run: python scripts/update_georgia.py
+      - name: Build static public site
+        run: |
+          mkdir -p site/data
+          cp index.html app.js market.js styles.css .nojekyll site/
+          cp data/salary_references.json data/georgia_live.json site/data/
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - name: Deploy GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
