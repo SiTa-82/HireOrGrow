@@ -1,6 +1,8 @@
-# TalentCost 0.5 — Live market benchmarking demo
+# HireOrGrow 0.6 — Live market benchmarking demo
 
 **English-language Talent Acquisition cost-decision prototype with automatic public salary queries.** It is a proof of concept, **not an approved HR or compensation system**.
+
+**Hire smart. Grow smarter.** — Global Talent Cost & Decision Intelligence.
 
 ## Modules
 
@@ -27,6 +29,10 @@ Market presets: **EU** (eight listed EU countries), **US**, **Global** (all 15 c
 
 `Internal rate` is a **manually entered, optional** figure. Enter a gross base-pay estimate if you want an indicative like-for-like comparison. You can choose annual, monthly, or hourly basis, currency and country. If the figure is a billing/client rate, select that type and the tool **will not calculate a salary percentage gap**. The private input stays in page memory and is **not added to any HTTP request**. Copy and Print deliberately include it if entered, so use demo data only.
 
+## Current public demo
+
+[HireOrGrow on GitHub Pages](https://sita-82.github.io/HireOrGrow/) — deployment and real API availability must be checked in a live browser.
+
 ## Run locally
 
 Start a static server in the directory containing `index.html`, `styles.css`, and `app.js`:
@@ -39,7 +45,7 @@ Browse to <http://localhost:8000>. Direct `file://` opening may work but is less
 
 ## Publish to GitHub Pages
 
-Create a GitHub repository (e.g., `talentcost-demo`), upload **the contents of this folder** into the repository root, then enable **Settings → Pages → Deploy from branch → main → /(root)**. GitHub Pages is a public site in normal setups — keep source code and sample inputs free from secrets or NDA data.
+In the existing [SiTa-82/HireOrGrow](https://github.com/SiTa-82/HireOrGrow) repository, upload **the contents of this folder** into the repository root, replacing the older app files, then confirm **Settings → Pages → Deploy from branch → main → /(root)**. GitHub Pages is a public site in normal setups — keep source code and sample inputs free from secrets or NDA data.
 
 ## Test
 

@@ -1,4 +1,4 @@
-# TalentCost 0.5 — Security status: public proof of concept, NOT NDA-approved
+# HireOrGrow 0.6 — Security status: public proof of concept, NOT NDA-approved
 
 ## What leaves the page
 

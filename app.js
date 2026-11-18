@@ -41,7 +41,7 @@ function calculateHire(){
    (external===internal?'Both scenarios have the same modeled cost.':`${winner} has ${money(diff)} lower modeled cost.`)+
    ` Time to start: external ${n('he-days')} days, internal ${n('hi-days')} days. Lead time is contextual and not charged again. Backfilling the internal candidate’s prior role is estimated at ${money(n('hi-backfill'))}. Annual salary and candidate readiness require separate analysis.`;
   set('hire-summary',narrative);
-  hireReport='TalentCost — Cost to Fill\n'+narrative+'\nAssumptions entered by the user; this is not a hiring recommendation.';
+  hireReport='HireOrGrow — Cost to Fill\n'+narrative+'\nAssumptions entered by the user; this is not a hiring recommendation.';
 }
 function calculateReplace(){
   const months=n('r-months'),vacancy=Math.min(n('r-empty'),months);
@@ -60,7 +60,7 @@ function calculateReplace(){
     (diff===0?'Both are modeled at the same cost.':`Replacement is ${money(Math.abs(diff))} ${diff>0?'more':'less'} expensive.`)+
     ` Replacement includes ${money(salary)} of salary after ${vacancy} vacant months, ${money(n('r-recruit'))} recruitment, ${money(n('r-exit'))} severance, ${money(n('r-onboard'))} onboarding, and ${money(loss)} estimated productivity losses. Replacement cash outlay is ${money(cash)}. Finance must validate assumptions; assess legal and workforce implications separately.`;
   set('r-narrative',narrative);
-  replacementReport='TalentCost — Retain vs. Replace\n'+narrative+'\nScenario calculation only. Not an employee termination recommendation.';
+  replacementReport='HireOrGrow — Retain vs. Replace\n'+narrative+'\nScenario calculation only. Not an employee termination recommendation.';
 }
 function calculateTalent(){
  const months=n('t-horizon'),active=d=>Math.max(0,months-Math.min(months,d));
@@ -90,7 +90,7 @@ function calculateTalent(){
  const role=el('t-role').value.trim()||'unspecified role';
  const narrative=`For ${role} in ${selectedScope()} over ${months} months: external hire ${money(rows[0].total)}, promotion ${money(rows[1].total)}, reskilling ${money(rows[2].total)}. Cash costs and estimated productivity losses are shown separately. The lowest cost does not establish candidate readiness.${notReady}`;
  set('t-narrative',narrative);
- talentReport='TalentCost — Internal Talent scenarios\n'+narrative+'\n'+rows.map(r=>`${r.name}: ${money(r.total)}; incremental payroll incl. backfill ${money(r.pay)}; direct costs ${money(r.other)}; estimated losses ${money(r.loss)}`).join('\n')+'\nFinance approval required. Not an automated HR decision.';
+ talentReport='HireOrGrow — Internal Talent scenarios\n'+narrative+'\n'+rows.map(r=>`${r.name}: ${money(r.total)}; incremental payroll incl. backfill ${money(r.pay)}; direct costs ${money(r.other)}; estimated losses ${money(r.loss)}`).join('\n')+'\nFinance approval required. Not an automated HR decision.';
 }
 function showTab(tab){
  for(const id of ['hire','replace','market','talent']){
@@ -300,7 +300,7 @@ function renderMarket(){
     `${matches.length}/${countries.length} countries with matching source data. Salary: ${marketStatus.salary}. FX: ${marketStatus.fx}. Remote postings: ${marketStatus.remote}. ${errorCount?`${errorCount} country request(s) unavailable.`:''}`;
   set('m-fetchstatus',status);
   const historyText=internal===null?'Not entered':`${amount(internal,internalCur)} per year (${basis}; manual only, not transmitted)`;
-  const lines=[`TalentCost Global — ${MARKET_ROLES[role]}, ${marketNames[grade]}`,
+  const lines=[`HireOrGrow Global — ${MARKET_ROLES[role]}, ${marketNames[grade]}`,
     `Date of report: ${new Date().toISOString().slice(0,10)}`,
     `Markets: ${countries.map(c=>MARKETS[c].name).join(', ') || '(none)'}`,
     `Salary source: SalaryByRole public API, https://salarybyrole.com/data/api`,

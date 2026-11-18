@@ -1,4 +1,4 @@
-# TalentCost 0.5 — Browser testing checklist
+# HireOrGrow 0.6 — Browser testing checklist
 
 ## Automatic offline smoke test
 
