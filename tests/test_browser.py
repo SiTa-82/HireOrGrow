@@ -29,15 +29,20 @@ def main():
    page.route('https://hireorgrow.example/data/**',lambda route:route.fulfill(
        content_type='application/json',body=(ROOT/'data'/route.request.url.split('/data/')[1].split('?')[0]).read_text('utf8')))
    html=(ROOT/'index.html').read_text('utf8')
-   html=html.replace('<link href="./styles.css?v=0.9.0" rel="stylesheet"/>','<style>'+(ROOT/'styles.css').read_text('utf8')+'</style>')
-   html=html.replace('<script src="./app.js?v=0.9.0"></script>','<script>'+(ROOT/'app.js').read_text('utf8')+'</script>')
-   html=html.replace('<script src="./market.js?v=0.9.0"></script>','<script>'+(ROOT/'market.js').read_text('utf8')+'</script>')
+   html=html.replace('<link href="./styles.css?v=0.9.2" rel="stylesheet"/>','<style>'+(ROOT/'styles.css').read_text('utf8')+'</style>')
+   html=html.replace('<script src="./app.js?v=0.9.2"></script>','<script>'+(ROOT/'app.js').read_text('utf8')+'</script>')
+   html=html.replace('<script src="./market.js?v=0.9.2"></script>','<script>'+(ROOT/'market.js').read_text('utf8')+'</script>')
    html=html.replace('http-equiv="Content-Security-Policy"','http-equiv="Test-Only-CSP"')
    html=html.replace('<head>','<head><base href="https://hireorgrow.example/">')
    page.set_content(html,wait_until='domcontentloaded')
-   assert '0.9.0' in page.title()
+   assert '0.9.2' in page.title()
    assert page.locator('#tab-decision').get_attribute('aria-selected')=='true'
    assert page.locator('#decision-chart .decision-chart-card').count()==3
+   assert page.locator('#decision-chart .decision-chart-icon').count()==0
+   assert page.locator('#tab-market strong').text_content()=='Salary Benchmarks'
+   assert page.locator('.chart-disclaimer').count()==1
+   assert page.locator('.comparison-lead .chart-disclaimer').evaluate('(e) => e.compareDocumentPosition(document.querySelector("#decision-chart")) & Node.DOCUMENT_POSITION_FOLLOWING')
+   assert 'Sets the country context' in page.locator('.location-hint').text_content()
    assert page.locator('#decision-role option').count()==43
    assert page.locator('#decision-role optgroup').count()==0
    assert page.locator('#decision-role').input_value()=='devops-engineer'
@@ -68,6 +73,18 @@ def main():
    assert page.locator('#m-compare-rows .market-mini-card').count()==3
    assert page.locator('#m-compare-rows').inner_text().count('No documented range')==3
    page.locator('#m-role').select_option('devops-engineer')
+   # New source-backed markets: select global then inspect role- and grade-matched countries.
+   page.locator('[data-preset="global"]').click()
+   assert page.locator('#m-compare-rows .market-mini-card').count()==9
+   assert 'Portugal' in page.locator('#m-compare-rows').inner_text()
+   assert 'India' in page.locator('#m-compare-rows').inner_text()
+   assert 'iTechScope' in page.locator('#m-compare-rows').inner_text()
+   assert 'Realtime Recruitment' in page.locator('#m-compare-rows').inner_text()
+   # Check market selection never leaks unrelated countries.
+   page.locator('[data-preset="clear"]').click()
+   page.locator('.m-country[value="armenia"]').check()
+   assert page.locator('#m-compare-rows .market-mini-card').count()==1
+   assert 'Georgia' not in page.locator('#m-compare-rows').inner_text()
    page.locator('#tab-decision').click()
    assert page.locator('#decision-role').input_value()=='devops-engineer'
    page.locator('#currency').select_option('EUR')

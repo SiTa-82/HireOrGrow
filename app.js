@@ -53,7 +53,7 @@ function renderDecisionOverview(){
       </div>`;
    }).join('');
    return `<article class="decision-chart-card" aria-label="${safe(group.title)} estimated costs">
-    <div class="decision-chart-head"><span class="decision-chart-icon">${safe(group.number)}</span><div><h3>${safe(group.title)}</h3><p>${safe(group.basis)}</p></div></div>
+    <div class="decision-chart-head"><div><h3>${safe(group.title)}</h3><p>${safe(group.basis)}</p></div></div>
     <div class="decision-chart-bars">${bars}</div>
     <div class="decision-chart-summary"><b>${safe(summary)}</b><small>${safe(next)}</small></div>
     <p class="decision-chart-note">${safe(group.note)}</p>
@@ -89,7 +89,7 @@ function calculateHire(){
    (external===internal?'Both scenarios have the same modeled cost.':`${winner} has ${money(diff)} lower modeled cost.`)+
    ` Time to start: external ${n('he-days')} days, internal ${n('hi-days')} days. Lead time is contextual and not charged again. Backfilling the internal candidate’s prior role is estimated at ${money(n('hi-backfill'))}. Annual salary and candidate readiness require separate analysis.`;
   set('hire-summary',narrative);
-  decisionModels.hire={key:'hire',number:'01',title:'External vs. internal hire',basis:'One-off cost to fill a position',note:`Time to start: external ${n('he-days')}d / internal ${n('hi-days')}d. Compensation after hire is excluded.`,options:[{name:'External hire',cost:external,detail:`${n('he-days')} days`},{name:'Internal transfer',cost:internal,detail:`${n('hi-days')} days`}]};renderDecisionOverview();
+  decisionModels.hire={key:'hire',title:'External vs. internal hire',basis:'One-off cost to fill a position',note:`Time to start: external ${n('he-days')}d / internal ${n('hi-days')}d. Compensation after hire is excluded.`,options:[{name:'External hire',cost:external,detail:`${n('he-days')} days`},{name:'Internal transfer',cost:internal,detail:`${n('hi-days')} days`}]};renderDecisionOverview();
   hireReport='HireOrGrow — Cost to Fill\n'+narrative+'\nAssumptions entered by the user; this is not a hiring recommendation.';
 }
 function calculateReplace(){
@@ -109,7 +109,7 @@ function calculateReplace(){
     (diff===0?'Both are modeled at the same cost.':`Replacement is ${money(Math.abs(diff))} ${diff>0?'more':'less'} expensive.`)+
     ` Replacement includes ${money(salary)} of salary after ${vacancy} vacant months, ${money(n('r-recruit'))} recruitment, ${money(n('r-exit'))} severance, ${money(n('r-onboard'))} onboarding, and ${money(loss)} estimated productivity losses. Replacement cash outlay is ${money(cash)}. Finance must validate assumptions; assess legal and workforce implications separately.`;
   set('r-narrative',narrative);
-  decisionModels.replace={key:'replace',number:'02',title:'Retain vs. replace',basis:`Full modeled cost · ${months}-month horizon`,note:'Includes salary and estimated productivity loss. Does not establish grounds to terminate a person.',options:[{name:'Retain',cost:retain},{name:'Replace',cost:replace}]};renderDecisionOverview();
+  decisionModels.replace={key:'replace',title:'Retain vs. replace',basis:`Full modeled cost · ${months}-month horizon`,note:'Includes salary and estimated productivity loss. Does not establish grounds to terminate a person.',options:[{name:'Retain',cost:retain},{name:'Replace',cost:replace}]};renderDecisionOverview();
   replacementReport='HireOrGrow — Retain vs. Replace\n'+narrative+'\nScenario calculation only. Not an employee termination recommendation.';
 }
 function calculateTalent(){
@@ -140,7 +140,7 @@ function calculateTalent(){
  const role=el('t-role').value.trim()||'unspecified role';
  const narrative=`For ${role} in ${selectedScope()} over ${months} months: external hire ${money(rows[0].total)}, promotion ${money(rows[1].total)}, reskilling ${money(rows[2].total)}. Cash costs and estimated productivity losses are shown separately. The lowest cost does not establish candidate readiness.${notReady}`;
  set('t-narrative',narrative);
- decisionModels.talent={key:'talent',number:'03',title:'Hire, promote or reskill',basis:`Incremental cost · ${months}-month horizon`,note:'Internal moves include backfill assumptions. Readiness and competence must be assessed separately.',options:rows.map(r=>({name:r.name,cost:r.total,detail:`${r.delay} mo to ready`}))};renderDecisionOverview();
+ decisionModels.talent={key:'talent',title:'Hire, promote or reskill',basis:`Incremental cost · ${months}-month horizon`,note:'Internal moves include backfill assumptions. Readiness and competence must be assessed separately.',options:rows.map(r=>({name:r.name,cost:r.total,detail:`${r.delay} mo to ready`}))};renderDecisionOverview();
  talentReport='HireOrGrow — Internal Talent scenarios\n'+narrative+'\n'+rows.map(r=>`${r.name}: ${money(r.total)}; incremental payroll incl. backfill ${money(r.pay)}; direct costs ${money(r.other)}; estimated losses ${money(r.loss)}`).join('\n')+'\nFinance approval required. Not an automated HR decision.';
 }
 function showTab(tab){

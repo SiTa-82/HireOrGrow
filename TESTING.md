@@ -2,7 +2,7 @@
 
 ## User-facing checks
 
-1. Site opens with **Market Intelligence** (reference-only) and a separate **Decision Calculators** category.
+1. Site opens with **Salary Benchmarks** (reference-only) and a separate **Decision Calculators** category.
 2. **Priority 3** selects Armenia, Georgia and Slovakia (3 countries).
 3. **EU** selects Portugal, Finland, Netherlands and Slovakia (4 supported EU states). This is *not* an EU-wide salary average.
 4. **US** selects the United States, **India** selects India, **Global** selects all nine supported countries, **Clear** selects none.
@@ -25,7 +25,7 @@ python tests/test_source_pipeline.py
 
 These tests use simulated FX and source payloads. They do not verify current salary statistics or licenses. For authorized live collection, a permitted provider API or explicit written permission is needed.
 
-## v0.9.0 FX acceptance checks
+## v0.9.1 FX acceptance checks
 
 - With USD selected, Georgia (GEL) and Slovakia (EUR) cards display USD figures first and original local currency underneath. Armenia (already USD) stays unchanged.
 - Every conversion identifies Frankfurter, quote observation date and FX rate availability; source data are never rewritten.

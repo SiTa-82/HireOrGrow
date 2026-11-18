@@ -46,11 +46,11 @@ const MARKET_ROLES = {
  "technical-business-analyst": "Technical Business Analyst",
  "technical-support-engineer": "Technical Support Engineer"
 };
-const sourceHosts=new Set(['jobs.ita.am','www.fairpay.ge','findjobs.ge','www.platy.sk','www.paylab.com','frankfurter.dev']);
+const sourceHosts=new Set(['jobs.ita.am','www.fairpay.ge','findjobs.ge','www.platy.sk','www.paylab.com','frankfurter.dev','www.itechscope.com','www.pearsoncarter.com','hyrezy.com','realtime.jobs','taylor.kz','www.inform.kz']);
 const allMarkets=Object.keys(MARKETS);
 const marketPresets={eu:allMarkets.filter(x=>MARKETS[x].region==='eu'),us:['united-states'],global:allMarkets};
 const selectedMarkets=()=>Array.from(document.querySelectorAll('.m-country:checked')).map(x=>x.value);
-const SOURCE_FILES={refs:'./data/salary_references.json?v=0.9.0',jobs:'./data/georgia_live.json?v=0.9.0'};
+const SOURCE_FILES={refs:'./data/salary_references.json?v=0.9.2',jobs:'./data/georgia_live.json?v=0.9.2'};
 let referenceRecords=[], georgiaFeed={status:'not_collected',roles:{},generatedAt:null};
 let marketError=[],marketBusy=false,lastLoad=0,marketOpened=false,referenceLoaded=false,fxRates={USD:1},fxDates={},fxDate=null;
 const showDate=raw=>raw?String(raw).slice(0,10):'Not supplied';
@@ -186,7 +186,7 @@ function renderComparisonTable(selected,reference,grade){
  }
  for(const country of selected){
   const available=reference.filter(r=>r.country===country);
-  const rank=r=>(r.roleScope==='family'?2:0)+(r.grade===grade?0:1);
+  const rank=r=>(r.roleScope==='family'?10:0)+(r.grade===grade?0:r.grade==='all'?2:4)+(r.basis==='unspecified'?1:0);
   const best=available.slice().sort((a,b)=>rank(a)-rank(b))[0];
   const name=safe(MARKETS[country].name);
   if(!best){
@@ -195,10 +195,10 @@ function renderComparisonTable(selected,reference,grade){
   }
   const exactRole=best.roleScope!=='family',exactLevel=best.grade===grade;
   const fullMatch=exactRole&&exactLevel;
-  const label=!exactRole?'Related occupation':exactLevel?`Level matched · ${best.basis.toUpperCase()}`:'Other / all levels';
+  const label=!exactRole?'Related occupation':exactLevel?`Level matched · ${best.basis.toUpperCase()}`:(best.grade==='all'?'All levels · context':(best.grade==='senior'?'Senior only · context':best.grade==='mid'?'Mid-level only · context':'Junior only · context'));
   const state=!fullMatch?'context':'partial';
   const cv=marketConversion(best);
-  const extraMedian=best.median===null?'':`<span class="market-mini-median">Median ${safe(cv.median===null?formatMoney(best.median,best.currency):formatMoney(cv.median,cv.target))}</span>`;
+  const extraMedian=best.median===null||best.median===undefined?'':`<span class="market-mini-median">Median ${safe(cv.median===null?formatMoney(best.median,best.currency):formatMoney(cv.median,cv.target))}</span>`;
   const gradeLabel=best.grade==='all'?'All experience levels':best.grade==='mid'?'Mid-level':best.grade==='senior'?'Senior':'Junior';
   const note=exactLevel?'':'This is context, not a salary estimate for the selected level.';
   const title=cv.didConvert&&cv.success?`Published salary · auto-converted to ${cv.target}`:cv.success?`Published salary · ${cv.target}`:`Published salary · original ${best.currency}`;
@@ -227,8 +227,9 @@ function renderMarket(){
  // A provider's existence in the underlying dataset is NOT grounds to show its card.
  const georgiaSelected=selected.includes('georgia');
  const georgiaPanel=el('m-georgia-panel');
- georgiaPanel.hidden=!georgiaSelected;
- georgiaPanel.style.display=georgiaSelected?'':'none';
+ const hasUsableGeorgiaFeed=georgiaSelected&&georgiaFeed.status==='ok';
+ georgiaPanel.hidden=!hasUsableGeorgiaFeed;
+ georgiaPanel.style.display=hasUsableGeorgiaFeed?'':'none';
  const raw=internalAnnual(),internalloc=el('m-home').value,internalcur=el('m-history-cur').value;
  const reference=referenceRecords.filter(r=>r.role===role&&selected.includes(r.country));
  const haveCountries=new Set(reference.map(r=>r.country));
@@ -282,7 +283,7 @@ function renderMarket(){
  const shownFeed=georgiaSelected?' · '+stamp:'';
  const relevantErrors=marketError.filter(x=>georgiaSelected||!x.toLowerCase().includes('georgia'));
  set('m-fetchstatus',marketBusy?'Loading site data…':`Public source snapshots: ${reference.length}${shownFeed} · FX ${fxDate||'unavailable'}${relevantErrors.length?' · '+relevantErrors.join('; '):''}`);
- const lines=[`HireOrGrow v0.9.0 · ${MARKET_ROLES[role]} · level ${grade}`,`Markets: ${selected.map(c=>MARKETS[c].name).join(', ')}`,
+ const lines=[`HireOrGrow v0.9.2 · ${MARKET_ROLES[role]} · level ${grade}`,`Markets: ${selected.map(c=>MARKETS[c].name).join(', ')}`,
  `Report created: ${new Date().toISOString().slice(0,10)}`,`Displayed currency: ${el('m-reportcur').value} · Frankfurter FX ${fxDate||'unavailable'}`,`Internal rate: ${raw===null?'Not entered':formatMoney(raw,internalcur)+'/year (manual, fictional)'}`,summary];
  for(const r of reference){const cv=marketConversion(r);lines.push(`${MARKETS[r.country].name}: ${cv.convertedRange} per ${r.period} [${cv.conversionNote}], source original ${cv.original} ${r.currency} per ${r.period}, ${r.basis}, grade ${r.grade}, scope ${r.roleScope||'exact'}, n=${r.sample||'unknown'}, ${r.source}, checked ${r.checkedDate}, updated ${r.publishedDate||'not specified'}, ${r.url}`)}
  if(georgiaSelected)lines.push(`Georgia job feed: ${stamp}; ${georgiaFeed.sourceUrl||''}`);

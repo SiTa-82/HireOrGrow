@@ -1,13 +1,28 @@
-## 0.9.0 — Consolidated decision comparison
+## v0.9.2 · Expanded salary evidence
+- Increased dated salary references from 7 to 110 across all 9 supported countries.
+- Matched mid-level bands where source data permits; all-grade surveys and candidate CTC stay explicitly differentiated.
+- Preserved original source URL, currency, period, gross/net/CTC/unknown basis, sample when published, checked date.
+- Still no automatic commercial API or permission to scrape protected sources; source data are curated snapshots.
+- No changes to decision calculators or internal rate privacy model.
+
+## 0.9.1 — UI clarity and unnumbered comparisons
+- Rename Market Intelligence to Salary Benchmarks throughout visible UI.
+- Clarify the Scenario location selector: report context only; no automatic salary, tax or currency changes.
+- Identify the three specific financial comparisons under Decision Comparison.
+- Move the “Read the charts independently” explanation above charts and inputs.
+- Remove decorative 01 / 02 / 03 numbering from the three comparison cards.
+- Do not change the financial model, available roles, salary-source integration, or external network permissions.
+
+## 0.9.1 — Consolidated decision comparison
 - New Decision Comparison home with three mini-charts, each normalised within its own cost model and horizon; lowest estimated cost marked, not recommended.
 - All three financial calculators available on the same page as expandable editors.
-- Same alphabetical 43-role position selector in Decision Comparison and Market Intelligence; roles kept in sync.
+- Same alphabetical 43-role position selector in Decision Comparison and Salary Benchmarks; roles kept in sync.
 - Benchmark remains a separate reference-only section, with 9 target markets and public source attribution.
 - No changes to original math formulas or market data.
 
 ## 0.8.4 — Flat Position Dropdown
 
-- Added 43 positions to **Market Intelligence → Position** in one alphabetically sorted dropdown, without groups.
+- Added 43 positions to **Salary Benchmarks → Position** in one alphabetically sorted dropdown, without groups.
 - Covers bioinformatics, data science, algorithms, cloud/DevOps/support, data engineering, Java/JavaScript/mobile, HPC, QA/automation, Python/Go, BI and business analysis.
 - Existing salary evidence retains exact-role matching only; uncovered roles display no verified reference.
 - No changes to markets, USD/FX, salary providers or the three decision calculators.
@@ -39,7 +54,7 @@
 
 ## 0.8 · 18 November 2026
 
-- Split product navigation into **Market Intelligence** (reference information) and **Decision Calculators** (three independent scenario tools).
+- Split product navigation into **Salary Benchmarks** (reference information) and **Decision Calculators** (three independent scenario tools).
 - Restricted country list to Armenia, Georgia, Kazakhstan, Portugal, Finland, Netherlands, Slovakia, United States and India.
 - Presets: Priority 3 (AM/GE/SK), EU (PT/FI/NL/SK), US, India and Global (all nine).
 - Compact salary evidence comparison table with source attribution, checked dates and grade/pay-basis caveats.
