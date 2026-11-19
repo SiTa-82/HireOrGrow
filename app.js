@@ -82,9 +82,9 @@ function syncDecisionRole(source){
 }
 
 
-// v0.9.7: shared financial assumptions. Only a same-role/same-grade, annualized
-// GROSS benchmark may auto-populate a market pay input. Otherwise keep explicit
-// demo inputs or require a user-entered figure; never infer pay from NET or CTC.
+// v0.9.10: use source salary as reported (NET, GROSS, or UNSPECIFIED).
+// Preserve source basis and grade metadata. Do not convert NET to GROSS,
+// treat CTC as salary, or claim unqualified employer-cost comparability.
 const finManual={market:false,internal:false,raise:false,training:false};
 let finSourceRecord=null;
 const FIN_DEMO_INTERNAL=48000,FIN_RAISE_PERCENT=.087,FIN_US_TRAIN=1023;
@@ -104,48 +104,41 @@ function finField(id,valAnnual){
 }
 function renderFinPeriod(){
  const unit=el('fin-period').value==='monthly'?'Month':'Year';
- set('fin-market-label',`Market Gross Rate / ${unit}`);
- set('fin-internal-label',`Internal Gross Rate / ${unit}`);
+ set('fin-market-label',`Market Salary Rate / ${unit} (${currency()})`);
+ set('fin-internal-label',`Internal Salary Rate / ${unit} (${currency()})`);
  set('fin-raise-label',`Promotion / Retention Raise / ${unit}`);
- set('fin-raise-note',finManual.raise?'Custom raise entered manually; shown per '+unit.toLowerCase()+'.':'Default: 8.7% of internal gross pay, shown per '+unit.toLowerCase()+' (Mercer US promotion survey).');
+ set('fin-raise-note',finManual.raise?'Custom raise entered manually; shown per '+unit.toLowerCase()+'.':'Default: 8.7% of entered internal salary, shown per '+unit.toLowerCase()+' (Mercer US promotion survey).');
 }
 function switchFinPeriod(){
  renderFinPeriod();
  for(const key of Object.keys(finAnnualValues))finField('fin-'+key,finAnnualValues[key]);
  applyFinancialAssumptions();
 }
-// Source matching is intentionally separate from a user's authorization to use
-// a non-grade-matched number in a financial decision.
+// Market salary evidence may be used as a quoted pay input even when its
+// NET/GROSS basis is not employer gross cost. Broader job families and CTC
+// are context only. A grade mismatch is displayed, never hidden or adjusted.
 let finMarketChoice={kind:'none',key:null};
 let finLastExternalSourceApplied=false;
 function finManualContextKey(){
  return [el('scenario-location').value,el('decision-role').value,el('decision-grade').value,currency()].join('|');
 }
-function finEvidenceKey(r){
- return [el('scenario-location').value,el('decision-role').value,el('decision-grade').value,currency(),r?.source,r?.grade,r?.publishedDate,r?.currency].join('|');
-}
+function finBasisLabel(basis){return basis==='gross'?'GROSS':basis==='net'?'NET':'NOT SPECIFIED';}
 function financialMarketEvidence(){
  const loc=el('scenario-location').value,grade=el('decision-grade').value,role=el('decision-role').value;
- if(!MARKETS[loc])return {kind:'none',record:null};
+ if(!MARKETS[loc])return {kind:'none',record:null,reason:'Select a specific country to match a salary source.'};
  const all=[...(typeof referenceRecords!=='undefined'?referenceRecords:[]),...((typeof automated!=='undefined'&&automated.salaryRecords)||[])];
  const sameRole=all.filter(r=>r.country===loc&&r.role===role);
- const numeric=sameRole.filter(r=>['year','month'].includes(r.period)&&Number.isFinite(Number(r.low))&&Number(r.low)>0&&Number(r.high)>=Number(r.low));
- const candidateGross=numeric.filter(r=>r.basis==='gross'&&r.roleScope==='exact');
+ const numeric=sameRole.filter(r=>['year','month'].includes(r.period)&&Number.isFinite(Number(r.low))&&Number(r.low)>0&&Number.isFinite(Number(r.high))&&Number(r.high)>=Number(r.low));
  const priority=r=>r.grade===grade?3:r.grade==='all'?2:1;
  const sort=(x,y)=>priority(y)-priority(x)||String(y.publishedDate||'').localeCompare(String(x.publishedDate||''))||Number(y.sample||0)-Number(x.sample||0);
- candidateGross.sort(sort);
- if(candidateGross.length){
-  const record=candidateGross[0];
+ const eligible=numeric.filter(r=>r.roleScope!=='family'&&['net','gross','unspecified'].includes(r.basis)).sort(sort);
+ if(eligible.length){
+  const record=eligible[0];
   return {kind:record.grade===grade?'verified':'indicative',record};
  }
- numeric.sort(sort);
- // Context-only records (NET, unspecified pay, CTC, or non-exact role
- // scopes) cannot populate a gross employer-cost assumption.
- return {kind:numeric.length?'context':'none',record:numeric[0]||null};
-}
-function financialMarketCandidate(){
- const e=financialMarketEvidence();
- return e.kind==='verified'?e.record:null;
+ const context=numeric.sort(sort);
+ return {kind:context.length?'context':'none',record:context[0]||null,
+  reason:context.length?'Only broad job-family or CTC evidence is available; it is not a salary quote for the selected role.':'No documented salary record for this role and country.'};
 }
 function finAnnualFromRecord(r){
  if(!r)return null;
@@ -156,96 +149,77 @@ function finRecordSummary(r){
  if(!r)return '';
  const base=r.median!==null&&r.median!==undefined?`median ${amount(Number(r.median),r.currency)}`:
   `range ${amount(Number(r.low),r.currency)}–${amount(Number(r.high),r.currency)}; midpoint used`;
- return `${base} / ${r.period} · ${r.grade==='all'?'all levels':r.grade} · ${String(r.basis).toUpperCase()} · ${r.source}`;
+ return `${base} / ${r.period} · ${r.grade==='all'?'all levels':r.grade} · ${finBasisLabel(r.basis)} · ${r.source}`;
+}
+function financialCostCaveat(){
+ const b=finManual.market?'unspecified':finSourceRecord?.basis;
+ if(annualFin('market')===null)return 'The market salary input is missing; salary-based comparisons require a checked manual assumption.';
+ if(b==='gross'&&!finManual.internal)return 'Salary-based costs are estimates: employer overhead and local taxes are not calculated automatically.';
+ const label=finBasisLabel(b);
+ return `Market salary basis: ${label}. This source value is used AS REPORTED, not converted to employer GROSS. Salary-based employer-cost comparisons are indicative and need a comparable gross employer-cost assumption.`;
 }
 function renderFinancialEvidence(e,converted){
  const parent=el('fin-source-review');if(!parent)return;
  const r=e.record;
- const fxInfo=(r&&r.currency!==currency())?(converted===null?`FX unavailable for ${safe(r.currency)} → ${safe(currency())}; enter a gross estimate manually.`:`Converted ${safe(r.currency)} → ${safe(currency())} using Frankfurter FX${typeof fxDate!=='undefined'&&fxDate?' ('+safe(fxDate)+')':''}; FX conversion does not change net into gross.`):'';
- let badge='',description='',actions='';
- const source=r?`<div class="fin-evidence-meta">${safe(finRecordSummary(r))} · ${safe(r.publishedDate||r.checkedDate||'publication date not provided')}${r.sample?` · n=${Number(r.sample)}`:''} ${typeof marketLink==='function'?marketLink(r.url,'View Source'):''}</div>`:'';
+ const hasConverted=converted!==null&&Number.isFinite(converted);
+ const basis=r?finBasisLabel(r.basis):'NOT SPECIFIED';
+ const fxInfo=(r&&r.currency!==currency())?(hasConverted?`Converted ${safe(r.currency)} → ${safe(currency())} using Frankfurter FX${typeof fxDate!=='undefined'&&fxDate?' ('+safe(fxDate)+')':''}; salary basis remains ${safe(basis)}.`:`FX unavailable for ${safe(r.currency)} → ${safe(currency())}; original amount is displayed below, but cannot be inserted into a field labelled ${safe(currency())}.`):'';
+ const source=r?`<div class="fin-evidence-meta">${safe(finRecordSummary(r))} · ${safe(r.publishedDate||r.checkedDate||'publication date not provided')}${r.sample?` · n=${safe(r.sample)}`:''} ${typeof marketLink==='function'?marketLink(r.url,'View Source'):''}</div>`:'';
+ let badge='',description='';
  if(finManual.market&&finMarketChoice.kind==='manual'){
   badge='<span class="fin-badge fin-badge--manual">Manual Estimate</span>';
-  description='<p>You entered a market <strong>GROSS rate manually</strong> for this country and role. Your value overrides the available source suggestion in this scenario; it is a user assumption, not a verified market average.</p>';
- }else if(e.kind==='verified'){
-  badge='<span class="fin-badge fin-badge--verified">Verified Match</span>';
-  description=converted===null?'<p>Role, level and gross pay basis match, but currency conversion is unavailable. Enter a gross rate manually.</p>':
-   '<p>Same country, role, level and GROSS pay basis. The matched source is used automatically unless you override the rate. “Verified Match” means matching fields, not an independent audit of the publisher.</p>';
- }else if(e.kind==='indicative'){
-  const gradeInfo=r.grade==='all'?'all seniority levels':`a different level (${safe(r.grade)})`;
-  badge='<span class="fin-badge fin-badge--indicative">Indicative Estimate</span>';
-  const accepted=finMarketChoice.kind==='indicative'&&finMarketChoice.key===finEvidenceKey(r);
-  description=`<p>Same country and occupation, GROSS pay, but sourced from ${gradeInfo}. This is <strong>not a grade-matched market average</strong>. ${accepted?'You accepted it for this scenario.':'It will not enter the calculation until you choose to use it.'}</p>`;
-  if(converted!==null){
-   const unit=el('fin-period').value==='monthly'?'month':'year';
-   description+=`<p class="fin-proposed">${safe(amount(converted/finPeriodFactor(),currency()))} / ${unit} (converted reference, not a verified ${safe(el('decision-grade').value)}-level quote)</p>`;
-   if(!accepted)actions='<button type="button" class="fin-accept" id="fin-use-indicative">Use This Indicative Gross Rate</button>';
-  }else description+='<p>Currency conversion is unavailable; enter your own gross estimate manually.</p>';
+  description='<p>Your manually entered salary overrides the source for this scenario. Its NET/GROSS basis is <strong>not specified</strong>; label it appropriately before treating it as employer cost.</p>';
+ }else if(e.kind==='verified'||e.kind==='indicative'){
+  const same=e.kind==='verified';
+  badge=`<span class="fin-badge fin-badge--${same?'verified':'indicative'}">${same?'Role & Level Match':'Indicative · Level Mismatch'}</span>`;
+  const levelInfo=same?'The role and selected grade match.':
+    `Requested ${safe(el('decision-grade').value)}; source covers ${r.grade==='all'?'all grades together':safe(r.grade)+' grade'}. No seniority adjustment was made.`;
+  description=`<p>${levelInfo} Source salary basis: <strong>${safe(basis)}</strong>. ${hasConverted?'The reported salary is automatically populated.':'The original source salary is available, but cannot be converted to the selected currency right now.'} ${r.basis==='gross'?'Employer taxes and overhead still require validation.':'NET or unknown-basis salaries are not equivalent to gross employer costs.'}</p>`;
+  if(!same&&hasConverted){description+=`<p class="fin-proposed">Indicative value: ${safe(amount(converted/finPeriodFactor(),currency()))} / ${el('fin-period').value==='monthly'?'month':'year'}. The grade mismatch is intentional and visible.</p>`;}
  }else if(e.kind==='context'){
   badge='<span class="fin-badge fin-badge--context">Context Only</span>';
-  const requested=el('decision-grade').value;
-  const levelWarning=r.grade===requested?'The published seniority level matches the selection.':
-    `Requested ${safe(requested)} level; this source covers ${r.grade==='all'?'all levels together':safe(r.grade)+' level'} instead. No junior/senior adjustment is inferred.`;
-  description=`<p><strong>${levelWarning}</strong> The published pay basis is ${safe(String(r.basis).toUpperCase())}${r.roleScope!=='exact'?' and the occupation category is broader than your selection':''}. This can be viewed as market context, but it cannot be used directly as an employer gross cost. Enter a separately justified gross estimate manually. No automatic net-to-gross conversion is applied.</p>`;
+  description=`<p>${safe(e.reason)} Source basis: <strong>${safe(basis)}</strong>. No automatic salary substitution is made.</p>`;
  }else{
-  badge='<span class="fin-badge fin-badge--none">Manual Estimate</span>';
-  description='<p>No documented salary evidence for this country and occupation. Enter a gross market rate manually; no other role or country is substituted.</p>';
+  badge='<span class="fin-badge fin-badge--none">No Matching Salary</span>';
+  description=`<p>${safe(e.reason||'No documented salary source available.')} Enter a rate manually if needed.</p>`;
  }
- const currentUnit=el('fin-period').value==='monthly'?'monthly':'annual';
- const manualHelp=`<div class="fin-manual-help"><strong>Need a more accurate figure?</strong> Enter a more accurate gross rate manually in <strong>Market Gross Rate / ${currentUnit==='monthly'?'Month':'Year'}</strong> above. Confirm the selected currency and pay period. Your value takes priority for this scenario and is not sent to external salary services.</div>`;
- parent.innerHTML=`<div class="fin-evidence-top">${badge}<strong>Salary Evidence for This Scenario</strong></div>${description}${source}${fxInfo&&e.kind!=='context'?`<p class="fin-evidence-fx">${fxInfo}</p>`:''}${actions}${manualHelp}<button type="button" class="fin-edit-manual" id="fin-edit-manual">${finManual.market&&finMarketChoice.kind==='manual'?'Edit My Gross Rate':'Enter a More Accurate Gross Rate Manually'} ↗</button>`;
+ const currentUnit=el('fin-period').value==='monthly'?'Month':'Year';
+ const manualHelp=`<div class="fin-manual-help"><strong>Need a different figure?</strong> Edit <strong>Market Salary Rate / ${currentUnit}</strong> above. The manual value will replace this source for the selected scenario; its pay basis is not automatically assumed to be GROSS.</div>`;
+ parent.innerHTML=`<div class="fin-evidence-top">${badge}<strong>Salary Evidence for This Scenario</strong></div>${description}${source}${fxInfo?`<p class="fin-evidence-fx">${fxInfo}</p>`:''}${manualHelp}<button type="button" class="fin-edit-manual" id="fin-edit-manual">${finManual.market?'Edit My Manual Rate':'Enter a More Accurate Rate Manually'} ↗</button>`;
  el('fin-edit-manual')?.addEventListener('click',()=>{const input=el('fin-market');input?.focus();input?.select();});
- if(e.kind==='indicative'&&converted!==null&&!finManual.market){
-  const button=el('fin-use-indicative');
-  if(button)button.addEventListener('click',()=>{
-   // Reject any stale click after a change of role, country, grade, source or currency.
-   const latest=financialMarketEvidence();
-   if(latest.kind!=='indicative'||finEvidenceKey(latest.record)!==finEvidenceKey(r))return;
-   const freshAnnual=finAnnualFromRecord(latest.record);
-   const fresh=latest.record.currency===currency()?freshAnnual:
-     typeof convertMoney==='function'?convertMoney(freshAnnual,latest.record.currency,currency()):null;
-   if(fresh===null)return;
-   finManual.market=true;
-   finMarketChoice={kind:'indicative',key:finEvidenceKey(latest.record)};
-   finField('fin-market',fresh);
-   refreshFinancialBenchmark();
-  });
- }
 }
 function refreshFinancialBenchmark(opts={}){
  renderFinPeriod();
  if(opts.reset){Object.keys(finManual).forEach(k=>finManual[k]=false);finMarketChoice={kind:'none',key:null}}
  const cur=currency(),e=financialMarketEvidence(),r=e.record,annual=finAnnualFromRecord(r);
- const converted=r&&['verified','indicative'].includes(e.kind)?
-  (r.currency===cur?annual:typeof convertMoney==='function'?convertMoney(annual,r.currency,cur):null):null;
- // A prior approval is valid ONLY for precisely the same record and scenario.
- if(finMarketChoice.kind==='indicative'&&(e.kind!=='indicative'||finMarketChoice.key!==finEvidenceKey(r))){
-  finManual.market=false;finMarketChoice={kind:'none',key:null};
- }
- // A manual quote is a scenario-specific assumption. Never silently carry it
- // over to another country, role, grade, or report currency.
+ const eligible=['verified','indicative'].includes(e.kind);
+ const converted=eligible&&r?(r.currency===cur?annual:typeof convertMoney==='function'?convertMoney(annual,r.currency,cur):null):null;
+ // Manual quotes cannot silently follow a role, grade, country or currency change.
  if(finMarketChoice.kind==='manual'&&finMarketChoice.key!==finManualContextKey()){
   finManual.market=false;finMarketChoice={kind:'none',key:null};
  }
- finSourceRecord=e.kind==='verified'||(e.kind==='indicative'&&finMarketChoice.kind==='indicative')?r:null;
- if(!finManual.market)finField('fin-market',e.kind==='verified'?converted:null);
+ finSourceRecord=eligible&&converted!==null&&!finManual.market?r:null;
+ if(!finManual.market)finField('fin-market',eligible?converted:null);
+ const activeBasis=finManual.market?'unspecified':(finSourceRecord?.basis||'unspecified');
+ const activeBasisLabel=finBasisLabel(activeBasis);
+ const marketBadge=finManual.market?'MANUAL · BASIS NOT SPECIFIED':eligible?`${finBasisLabel(r.basis)} · SOURCE`:
+  (e.kind==='context'?`${finBasisLabel(r.basis)} · CONTEXT ONLY`:'NO SOURCE');
+ set('fin-market-basis',marketBadge);
  let src='';
  if(finManual.market){
-  src=finMarketChoice.kind==='indicative'?`User-approved indicative gross assumption · ${r.source} · ${r.grade} level, not a verified match.`:
-    'Manually entered gross estimate. Not a source-verified local average.';
- }else if(e.kind==='verified'){
-  src=converted===null?`Matched GROSS source: ${r.source}, but FX unavailable; enter manually.`:
-   `${r.source} · ${r.publishedDate||'publication date not supplied'} · ${r.median!==null&&r.median!==undefined?'source median':'range midpoint (not statistical mean)'} · ${r.currency} / ${r.period} → ${cur} / year for calculation. Grade matched.`;
- }else if(e.kind==='indicative'){
-  src=`Indicative GROSS evidence (${r.grade==='all'?'all levels':'different level: '+r.grade}) from ${r.source}. Accept below to use it, or enter a manual gross rate.`;
+  src='Manual rate · pay basis not specified · not a source-verified market average.';
+ }else if(eligible){
+  src=converted===null?`Source ${r.source} · ${finBasisLabel(r.basis)} / ${r.period} · FX unavailable (${r.currency} → ${cur}); choose source currency or enter manually.`:
+   `${r.source} · ${r.publishedDate||'date not supplied'} · ${r.median!==null&&r.median!==undefined?'source median':'range midpoint, not statistical mean'} · ${finBasisLabel(r.basis)} · ${r.currency} / ${r.period} → ${cur} / ${el('fin-period').value}. ${e.kind==='indicative'?'Different/all grades: indicative, not a level-specific quote.':'Grade matched.'}`;
  }else if(e.kind==='context'){
-  src=`Context only · ${r.source} · ${String(r.basis).toUpperCase()} / ${r.period}. Cannot automatically convert this into employer GROSS.`;
- }else src='No documented role-specific salary reference. Enter a market GROSS rate manually.';
+  src=`Context only: ${r.source} · ${finBasisLabel(r.basis)} / ${r.period}; broad family or CTC is not used as a salary quote.`;
+ }else src=e.reason||'No documented role-specific salary reference. Enter a market salary manually.';
  set('fin-market-source',src);
  renderFinancialEvidence(e,converted);
  const reference=annualFin('market');
  if(!finManual.internal)finField('fin-internal',reference!==null?reference:FIN_DEMO_INTERNAL);
- set('fin-internal-note',reference!==null&&!finManual.internal?'Default matches the selected market gross input (verified or user-approved indicative). Edit for your organization.':'Illustrative starting rate only; NOT a verified local average. Edit manually.');
+ set('fin-internal-basis',finManual.internal?'MANUAL · BASIS NOT SPECIFIED':reference!==null?`${activeBasisLabel} · DEFAULT FROM MARKET`:'DEMO · BASIS NOT SPECIFIED');
+ set('fin-internal-note',reference!==null&&!finManual.internal?'Initially mirrors the market salary source AS IS; not an independently verified internal rate. Edit for your organization.':'Illustrative starting rate only; NOT a verified local average. Edit manually.');
  if(!finManual.raise)finField('fin-raise',(annualFin('internal')||0)*FIN_RAISE_PERCENT);
  let trainingVal=cur==='USD'?FIN_US_TRAIN:typeof convertMoney==='function'?convertMoney(FIN_US_TRAIN,'USD',cur):null;
  if(!finManual.training)finField('fin-training',trainingVal);
@@ -257,8 +231,8 @@ function applyFinancialAssumptions(){
  const grossInternal=annualFin('internal'),grossMarket=annualFin('market'),raise=annualFin('raise'),training=fm('fin-training');
  const overhead=Math.max(0,Math.min(250,fm('fin-overhead')||0));
  const multiplier=1+overhead/100;
- // Existing models use estimated EMPLOYER expense, not pure salary. Since
- // we cannot know statutory levies, this remains a user-defined cost proxy.
+ // Existing calculators use entered salary as a COST PROXY, not verified
+ // employer expense. NET/unspecified values are NEVER grossed up.
  if(grossInternal!==null){
   el('r-pay').value=Math.round(grossInternal*multiplier);
   el('t-p-old').value=Math.round(grossInternal*multiplier);
@@ -288,9 +262,9 @@ function applyFinancialAssumptions(){
   el('t-s-train').value=Math.round(training);
   el('hi-onboard').value=Math.round(training);
  }
- const noted=grossMarket===null?'No compatible or user-approved market gross rate. External employer-cost inputs remain DEMO/manual until reviewed.':
-  `${finMarketChoice.kind==='indicative'?'USER-APPROVED INDICATIVE':finManual.market?'MANUAL':'GRADE-MATCHED'} market employer-cost proxy: ${money(grossMarket*multiplier)} per year (gross input ${money(grossMarket)} + ${overhead}% assumed overhead).`;
- set('fin-status',`${noted} Internal rate and promotion costs are user-adjustable. Illustrative US promotion default 8.7%; training default $1,023 per learner. No local taxes calculated. Edits update all three models; they are not hiring recommendations.`);
+ const noted=grossMarket===null?'No source-backed market salary in the selected currency. External salary costs remain DEMO/manual until checked.':
+  `${finManual.market?'MANUAL':finSourceRecord?.grade===el('decision-grade').value?'GRADE-MATCHED':'INDICATIVE / GRADE-MISMATCH'} market salary input: ${money(grossMarket)} per year (${finManual.market?'MANUAL / BASIS NOT SPECIFIED':finBasisLabel(finSourceRecord?.basis)}; overhead ${overhead}% is USER-ASSUMED).`;
+ set('fin-status',`${noted} ${financialCostCaveat()} Internal rate and promotion costs are editable. No NET-to-GROSS conversion or local tax calculation. Edits update all three models; they are not hiring recommendations.`);
  calculateHire();calculateReplace();calculateTalent();
 }
 
@@ -311,8 +285,8 @@ function calculateHire(){
   const mr=annualFin('market'),ir=annualFin('internal'),inc=annualFin('raise')||0;
   const ov=1+(fm('fin-overhead')||0)/100;
   set('hire-payroll-12mo',mr!==null&&ir!==null?
-   `Separate 12-month salary-inclusive projection (not included in the bars): external ${money(external+mr*ov)} vs. internal ${money(internal+(ir+inc)*ov)}. Assumes a full year of pay after start, so excludes vacancy timing; internal backfill remains in one-off costs. Validate with Finance.`:
-   `Salary-inclusive comparison unavailable: no matched market gross pay. One-off bars remain valid for the manually entered transition assumptions.`);
+   `Separate 12-month salary-inclusive projection (not included in the bars): external ${money(external+mr*ov)} vs. internal ${money(internal+(ir+inc)*ov)}. Assumes a full year of pay after start, so excludes vacancy timing; internal backfill remains in one-off costs. Validate with Finance. ${financialCostCaveat()}`:
+   `Salary-inclusive comparison unavailable: no usable salary in the chosen currency. One-off bars remain valid for the manually entered transition assumptions.`);
   decisionModels.hire={key:'hire',title:'External vs. Internal Hire',basis:'One-Time Cost to Fill a Position',note:'Time to start shown in approximate months. Compensation after hire is excluded.',options:[{name:'External hire',cost:external,detail:`≈ ${(n('he-days')/30.44).toFixed(1)} months to start`},{name:'Internal transfer',cost:internal,detail:`≈ ${(n('hi-days')/30.44).toFixed(1)} months to start`}]};renderDecisionOverview();
   hireReport='HireOrGrow — Cost to Fill\n'+narrative+'\nAssumptions entered by the user; this is not a hiring recommendation.';
 }
@@ -331,7 +305,7 @@ function calculateReplace(){
   const role=el('r-role').value.trim()||'unspecified role';
   const narrative=`Over ${months} months for ${role} in ${selectedScope()}, retaining costs ${money(retain)}, while replacing costs ${money(replace)}. `+
     (diff===0?'Both are modeled at the same cost.':`Replacement is ${money(Math.abs(diff))} ${diff>0?'more':'less'} expensive.`)+
-    ` Replacement includes ${money(salary)} of salary after ${vacancy} vacant months, ${money(n('r-recruit'))} recruitment, ${money(n('r-exit'))} severance, ${money(n('r-onboard'))} onboarding, and ${money(loss)} estimated productivity losses. Replacement cash outlay is ${money(cash)}. Finance must validate assumptions; assess legal and workforce implications separately.`;
+    ` Replacement includes ${money(salary)} of salary after ${vacancy} vacant months, ${money(n('r-recruit'))} recruitment, ${money(n('r-exit'))} severance, ${money(n('r-onboard'))} onboarding, and ${money(loss)} estimated productivity losses. Replacement cash outlay is ${money(cash)}. Finance must validate assumptions; assess legal and workforce implications separately. ${financialCostCaveat()}`;
   set('r-narrative',narrative);
   decisionModels.replace={key:'replace',title:'Retain vs. Replace',basis:`Full Modeled Cost · ${months}-Month Horizon`,note:'Includes salary and estimated productivity loss. Does not establish grounds to terminate a person.',options:[{name:'Retain',cost:retain},{name:'Replace',cost:replace}]};renderDecisionOverview();
   replacementReport='HireOrGrow — Retain vs. Replace\n'+narrative+'\nScenario calculation only. Not an employee termination recommendation.';
@@ -362,7 +336,7 @@ function calculateTalent(){
  el('t-breakdown').innerHTML=rows.map(r=>`<div class="sc-row"><span>${safe(r.name)}</span><b>${safe(money(r.pay))} payroll delta + ${safe(money(r.other))} direct costs + ${safe(money(r.loss))} estimated productivity loss</b></div>`).join('');
  const notReady=rows.some(r=>r.delay>=months)?' Caution: at least one option is not ready within the selected horizon; a zero future payroll line does not mean the role is filled.':'';
  const role=el('t-role').value.trim()||'unspecified role';
- const narrative=`For ${role} in ${selectedScope()} over ${months} months: external hire ${money(rows[0].total)}, promotion ${money(rows[1].total)}, reskilling ${money(rows[2].total)}. Cash costs and estimated productivity losses are shown separately. The lowest cost does not establish candidate readiness.${notReady}`;
+ const narrative=`For ${role} in ${selectedScope()} over ${months} months: external hire ${money(rows[0].total)}, promotion ${money(rows[1].total)}, reskilling ${money(rows[2].total)}. Cash costs and estimated productivity losses are shown separately. The lowest cost does not establish candidate readiness.${notReady} ${financialCostCaveat()}`;
  set('t-narrative',narrative);
  decisionModels.talent={key:'talent',title:'Hire, Promote, or Reskill',basis:`Incremental Cost · ${months}-Month Horizon`,note:'Internal moves include backfill assumptions. Readiness and competence must be assessed separately.',options:rows.map(r=>({name:r.name,cost:r.total,detail:`${r.delay.toFixed(1)} months to ready`}))};renderDecisionOverview();
  talentReport='HireOrGrow — Internal Talent scenarios\n'+narrative+'\n'+rows.map(r=>`${r.name}: ${money(r.total)}; incremental payroll incl. backfill ${money(r.pay)}; direct costs ${money(r.other)}; estimated losses ${money(r.loss)}`).join('\n')+'\nFinance approval required. Not an automated HR decision.';
@@ -399,7 +373,7 @@ for(const fld of ['market','internal','raise','training'])el('fin-'+fld).addEven
   if(fld!=='training')finAnnualValues[fld]=fm('fin-'+fld)===null?null:fm('fin-'+fld)*finPeriodFactor();
   if(fld==='internal'&&!finManual.raise){finField('fin-raise',(annualFin('internal')||0)*FIN_RAISE_PERCENT)}
   if(fld==='raise')renderFinPeriod();
-  if(fld==='market')refreshFinancialBenchmark();
+  if(fld==='market'||fld==='internal')refreshFinancialBenchmark();
   else applyFinancialAssumptions();
 });
 el('fin-period').addEventListener('change',switchFinPeriod);

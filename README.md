@@ -1,4 +1,4 @@
-# HireOrGrow 0.9.9 — Decision Comparison + automated evidence
+# HireOrGrow 0.9.10 — Decision Comparison + automated evidence
 
 A public, static, English-language preview of HireOrGrow.
 
@@ -33,17 +33,12 @@ Navigation uses a scales icon for Decision Comparison and a money/coins icon for
 ## New in v0.9.9: Financial Assumptions and Rate Trends
 
 On **Decision Comparison**, choose a position, seniority, and exact scenario
-country. When Salary Benchmarks contains a same-role, same-grade **gross** pay
-reference, HireOrGrow uses a reported median or the transparent midpoint of a
-published range as the initial annual market pay. Otherwise, the field remains
-empty and clearly requires manual verification. Internal pay defaults to the
-market pay only when comparable evidence is available; otherwise it is a
-**demo number, not a local average**.
+country. When Salary Benchmarks contains an exact-role salary reference with pay basis **GROSS**, **NET**, or **unspecified**, HireOrGrow now auto-fills the market input as reported. Matching-grade references take priority; if only a different/all-grade source exists it is labelled **Indicative · Level Mismatch**. A published median or transparently labelled range midpoint is used, with source, pay basis, grade, currency and period visible. No NET-to-GROSS conversion occurs. Broad job-family and CTC records remain context only. The default internal input mirrors the chosen market salary **as a proxy**, not verified employer cost.
 
 Editable values:
 
-- **Market Annual Gross Rate** — verified role, country, grade if possible, or manual entry.
-- **Internal Annual Gross Rate** — initially aligned with that rate when available.
+- **Market Salary Rate** — original salary basis retained (NET, GROSS or not specified), sourced or manually entered.
+- **Internal Salary Rate** — initially mirrors the market salary basis as a planning proxy; editable independently.
 - **Promotion / Retention Raise (annual)** — 8.7% of internal pay (US Mercer
   2026 one-level promotion planning default, not local evidence).
 - **Training Budget (one-off)** — 2026 US organizational mean $1,023 per learner,
@@ -55,7 +50,7 @@ Editable values:
 Editing the shared fields updates detailed calculators. Their salary-based
 employer expense is an *illustrative proxy*, not payroll compliance.
 The External vs Internal bar chart remains a one-time transition cost;
-a separate 12-month salary-inclusive what-if shows the gross proxy and
+a separate 12-month salary-inclusive what-if shows the entered salary proxy and
 states its simplifying assumptions.
 
 The **Rate Trends** subsection of Salary Benchmarks displays a dated, source-
@@ -67,26 +62,41 @@ or examples. Only use fictitious manual figures.**
 
 ## New in v0.9.9 — pay periods and chart labels
 
-Financial Assumptions has a **Monthly / Annual** selector for market gross pay,
-internal gross pay and the promotion/retention raise. These are canonicalized
-internally to *annual gross* for the financial calculations; switching the selector
+Financial Assumptions has a **Monthly / Annual** selector for market salary,
+internal salary and the promotion/retention raise. These values are canonicalized
+internally to *annual amounts without changing their NET/GROSS basis*; switching the selector
 never multiplies a value twice or changes the modeled results. Training remains a
 **one-off** cost, and overhead remains a percentage.
 
-A same-role / same-grade gross source published **per month** can be annualized by
-multiplying by 12. A gross annual source can be shown monthly by dividing by 12.
-The unit conversion does not turn NET, CTC, unspecified basis, or billable rates
-into employer GROSS pay. Currency conversion still depends on FX availability.
+A source published **per month** is annualized by multiplying by 12, and an
+annual source can be displayed per month by dividing by 12. This never changes
+NET into GROSS. NET and basis-unknown salaries populate the input as-is, but
+the resulting employer-cost calculations are explicitly indicative, not verified
+payroll cost. Currency conversion still depends on FX availability; without FX
+the original figure is displayed as evidence but not inserted as the wrong currency.
 
 Decision charts explicitly label figures as **One-Time Cost**, **N-Month Total Cost**
 or **N-Month Incremental Cost**, with the exact period next to each displayed
 amount. Values across separate charts must never be compared directly.
 
 
-### Salary evidence in Decision Comparison (0.9.9)
-**Verified Match** auto-fills when gross pay, occupation, grade, and country match and currency conversion is available. **Indicative Estimate** appears for same-occupation gross salary surveys spanning all grades or a different grade; it is used **only** after the user explicitly clicks **Use This Indicative Gross Rate**. **Context Only** evidence (net, unspecified, CTC, or broad role families) cannot be injected into gross calculations. Users can always enter their own **Manual Estimate**. This is a decision-support demo, not a verified salary-price engine.
+### Salary evidence in Decision Comparison (0.9.10)
 
-In each matching state, an explicit explanation and **Enter a More Accurate Gross Rate Manually** action identifies the source, grade coverage, pay basis, period and source/date when available. User input overrides the estimate for the selected country/role/grade/currency; switching scenarios clears a manual market quote rather than silently reusing it.
+**Role & Level Match** auto-fills a source salary with NET, GROSS, or unspecified
+basis when country, role and grade match. **Indicative · Level Mismatch**
+also auto-fills an exact-role record that covers another grade or all levels,
+without making any synthetic grade adjustment. Its limitation is prominent.
+Source amount, pay basis, currency, period, date, range/median method and URL
+are preserved. **Context Only** is used for CTC and broader occupation families;
+these do not become salary quotes. With no appropriate salary or FX, the rate
+remains blank. A scenario-specific **Manual Estimate** always takes precedence
+until the scenario changes or the user resets defaults. Manual basis is marked
+**NOT SPECIFIED**, not falsely assumed GROSS.
+
+Calculators continue to run as planning simulations, but NET/unknown basis
+(including when internal salary inherits a source) is **not** a validated
+all-in employer cost. No tax, pay basis conversion, or legal entitlement is
+calculated. The product is not an HR recommendation system.
 
 ### v0.9.9: Calculator guidance
 

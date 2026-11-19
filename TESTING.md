@@ -54,13 +54,32 @@ Version 0.9 adds a shared 43-position dropdown, independent chart comparisons an
   the updated history file. Successful workflow != proof any API returned salary.
 - Test code: `python tests/test_rate_history.py` and `python tests/test_browser.py`.
 
-### v0.9.8 regression cases
+### Historical v0.9.8 regression cases (superseded by v0.9.10 salary rules)
 - Monthly default shows internal 4000 and raise 348 from annual 48000 and 4176.
 - Annual toggle shows 48000/4176, then Monthly restores 4000/348 with identical chart totals.
-- Existing monthly-gross salary records match the corresponding country/role/level and normalize to annual; NET never auto-populates market gross.
+- Originally, NET did not auto-populate. **Superseded in v0.9.10:** NET now auto-populates as an explicitly labelled salary basis.
 - All three charts show the basis on their title badges and next to each numeric scenario amount; selected horizons update the labels.
 - One-off training budget remains the same when switching pay periods.
 
 ### v0.9.9 regression
 
 Check the chart disclaimer is inside `.decision-calculators-section` and below `.financial-assumptions`. Check context evidence for Junior vs Senior pay distinguishes requested level and source grade.
+
+## v0.9.10 salary as-is acceptance tests
+
+- Armenia + DevOps + Mid: use the existing Senior NET source's **$3,300/month** as an indicative salary; show `NET · SOURCE` and seniority mismatch. Internal default inherits NET as a **proxy**, not a gross employer cost.
+- Georgia + DevOps + Mid: use salary basis `NOT SPECIFIED` when FX from GEL to selected report currency exists; show the unknown basis and grade mismatch. If FX is missing, do not paste GEL as USD.
+- Slovakia + DevOps + Mid: use the gross all-level rate with a visible grade mismatch, without a confirmation click.
+- Portugal + DevOps + Mid: exact GROSS grade match, sourced and automatically populated.
+- India + DevOps + Mid: broad-role CTC remains context only; input blank rather than pretending a gross/net salary.
+- The Monthly / Annual switch does not change financial output or permanently round source figures; one-off training budget never changes.
+- Manual edits override the source without a silent replacement by refresh; switching country/grade/currency clears scenario-specific manual salary quotes.
+- Browser tests include synthetic in-memory NET and unspecified exact-grade evidence (never committed to public salary data) and simulated FX failure.
+
+```bash
+python tests/test_browser.py
+python tests/test_rate_history.py
+python tests/test_salary_evidence.py
+python tests/test_auto_sources.py
+python tests/test_source_pipeline.py
+```

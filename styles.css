@@ -393,3 +393,6 @@
 .decision-calculators-section .chart-disclaimer strong{color:#173c66}
 .decision-calculators-section .decision-chart{margin-top:0}
 @media(max-width:740px){.decision-calculators-heading{display:block}.decision-calculators-heading p{margin-top:6px}}
+
+/* v0.9.10: pay basis stays visible beside auto-filled salary values. */
+.salary-basis-tag{display:inline-block;align-self:flex-start;margin-top:6px;padding:3px 8px;border-radius:7px;border:1px solid #c6d8e9;background:#f2f6fc;color:#345674;font-size:10px;font-weight:800;letter-spacing:.025em;line-height:1.3}

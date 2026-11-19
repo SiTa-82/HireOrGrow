@@ -1,4 +1,4 @@
-"""Functional regression test for v0.9.9 financial assumptions and rate trends."""
+"""Functional regression test for v0.9.10 financial assumptions and rate trends."""
 import json
 from pathlib import Path
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
@@ -29,7 +29,7 @@ def main():
    page.route('https://hireorgrow.example/data/**',lambda route:route.fulfill(
        content_type='application/json',body=(ROOT/'data'/route.request.url.split('/data/')[1].split('?')[0]).read_text('utf8')))
    page.route('https://hireorgrow.example/data/automatic_market.json*',lambda route:route.fulfill(content_type='application/json',body=json.dumps({
-      'version':'0.9.9','generatedAt':'2026-11-18T14:00:00Z',
+      'version':'0.9.10','generatedAt':'2026-11-18T14:00:00Z',
       'providers':{'salarybyrole':{'status':'ok','records':3},'yubhub':{'status':'ok','records':1}},
       'salaryRecords':[{'country':'netherlands','role':'devops-engineer','grade':'mid','source':'SalaryByRole (automated API)',
        'url':'https://salarybyrole.com/api/salary?role=devops-engineer&country=netherlands','type':'aggregated_api_estimate',
@@ -42,13 +42,13 @@ def main():
        'observedDate':'2026-11-18','fetchedAt':'2026-11-18T14:00:00Z'}]
    })))
    html=(ROOT/'index.html').read_text('utf8')
-   html=html.replace('<link href="./styles.css?v=0.9.9" rel="stylesheet"/>','<style>'+(ROOT/'styles.css').read_text('utf8')+'</style>')
-   html=html.replace('<script src="./app.js?v=0.9.9"></script>','<script>'+(ROOT/'app.js').read_text('utf8')+'</script>')
-   html=html.replace('<script src="./market.js?v=0.9.9"></script>','<script>'+(ROOT/'market.js').read_text('utf8')+'</script>')
+   html=html.replace('<link href="./styles.css?v=0.9.10" rel="stylesheet"/>','<style>'+(ROOT/'styles.css').read_text('utf8')+'</style>')
+   html=html.replace('<script src="./app.js?v=0.9.10"></script>','<script>'+(ROOT/'app.js').read_text('utf8')+'</script>')
+   html=html.replace('<script src="./market.js?v=0.9.10"></script>','<script>'+(ROOT/'market.js').read_text('utf8')+'</script>')
    html=html.replace('http-equiv="Content-Security-Policy"','http-equiv="Test-Only-CSP"')
    html=html.replace('<head>','<head><base href="https://hireorgrow.example/">')
    page.set_content(html,wait_until='domcontentloaded')
-   assert '0.9.9' in page.title()
+   assert '0.9.10' in page.title()
    assert page.locator('#tab-decision').get_attribute('aria-selected')=='true'
    assert page.locator('#tab-decision .top-nav-symbol svg').count()==1
    assert page.locator('#tab-market .top-nav-symbol svg').count()==1
@@ -61,63 +61,96 @@ def main():
    assert page.locator('.financial-assumptions .chart-disclaimer').count()==0
    assert page.locator('.chart-disclaimer').evaluate('(e) => !!(e.compareDocumentPosition(document.querySelector(".financial-assumptions")) & Node.DOCUMENT_POSITION_PRECEDING)')
    assert page.locator('.comparison-lead .chart-disclaimer').evaluate('(e) => e.compareDocumentPosition(document.querySelector("#decision-chart")) & Node.DOCUMENT_POSITION_FOLLOWING')
-   assert 'Sets the country context' in page.locator('.location-hint').text_content()
+   assert 'Sets the country for salary evidence' in page.locator('.location-hint').text_content()
    assert page.locator('#decision-role option').count()==43
    assert page.locator('#decision-role optgroup').count()==0
    assert page.locator('#decision-role').input_value()=='devops-engineer'
-   assert page.locator('#fin-internal').input_value()=='4000'
-   assert page.locator('#fin-market').input_value()==''  # Armenia Mid DevOps has no gross reference
-   assert page.locator('#fin-raise').input_value()=='348'
+   page.wait_for_function("document.querySelector('#fin-market').value !== ''",timeout=15000)
+   assert page.locator('#fin-market').input_value()=='3300'  # Armenia Senior NET is used AS IS
+   assert page.locator('#fin-internal').input_value()=='3300'  # Mirrors source, marked NET proxy
+   assert page.locator('#fin-raise').input_value()=='287.1'
    assert page.locator('#fin-training').input_value()=='1023'
    assert page.locator('#fin-period').input_value()=='monthly'
-   assert 'Market Gross Rate / Month' in page.locator('#fin-market-label').inner_text()
-   assert 'Context only' in page.locator('#fin-market-source').inner_text()
+   assert 'Market Salary Rate / Month (USD)' in page.locator('#fin-market-label').inner_text()
+   assert 'NET · SOURCE' in page.locator('#fin-market-basis').inner_text()
+   assert 'NET · DEFAULT FROM MARKET' in page.locator('#fin-internal-basis').inner_text()
+   assert 'salary basis: NET' in page.locator('#fin-status').inner_text()
+   # Exact-grade NET and unspecified records also auto-fill; never become GROSS.
+   page.evaluate("""() => {
+     referenceRecords.push({country:'armenia',role:'devops-engineer',grade:'mid',basis:'net',roleScope:'exact',
+       period:'month',low:2750,high:3250,median:3000,currency:'USD',source:'SYNTHETIC NET TEST',publishedDate:'2099-01-01'});
+     refreshFinancialBenchmark({reset:true});
+   }""")
+   assert page.locator('#fin-market').input_value()=='3000'
+   assert 'NET · SOURCE' in page.locator('#fin-market-basis').inner_text()
+   assert 'Role & Level Match' in page.locator('#fin-source-review').inner_text()
+   page.evaluate("""() => {
+     referenceRecords.push({country:'armenia',role:'devops-engineer',grade:'mid',basis:'unspecified',roleScope:'exact',
+       period:'month',low:3900,high:4100,median:4000,currency:'USD',source:'SYNTHETIC UNKNOWN TEST',publishedDate:'2100-01-01'});
+     refreshFinancialBenchmark({reset:true});
+   }""")
+   assert page.locator('#fin-market').input_value()=='4000'
+   assert 'NOT SPECIFIED · SOURCE' in page.locator('#fin-market-basis').inner_text()
+   page.evaluate("""() => {
+     referenceRecords=referenceRecords.filter(r=>!r.source.startsWith('SYNTHETIC '));
+     refreshFinancialBenchmark({reset:true});
+   }""")
+   assert page.locator('#fin-market').input_value()=='3300'
+   page.locator('#currency').select_option('RUB')
+   assert page.locator('#fin-market').input_value()==''  # FX unavailable in test fixture
+   assert 'FX unavailable' in page.locator('#fin-market-source').inner_text()
+   page.locator('#currency').select_option('USD')
+   assert page.locator('#fin-market').input_value()=='3300'
    assert page.locator('#decision-chart .decision-period-pill').all_text_contents()==['One-Time Cost','12-Month Total Cost','12-Month Incremental Cost']
    assert 'one-time' in page.locator('#decision-chart').inner_text()
    assert '12-month total' in page.locator('#decision-chart').inner_text()
    assert '12-month incremental' in page.locator('#decision-chart').inner_text()
-   # v0.9.9: verified/indicative/context are distinct and consent is explicit.
-   assert 'Context Only' in page.locator('#fin-source-review').inner_text()  # Armenia: senior NET
+   # v0.9.10: same-role NET, GROSS and unspecified salary auto-fill.
+   assert 'Indicative · Level Mismatch' in page.locator('#fin-source-review').inner_text()
    assert page.locator('#fin-use-indicative').count()==0
    page.locator('#scenario-location').select_option('georgia')
-   assert 'Context Only' in page.locator('#fin-source-review').inner_text()  # Georgia: unspecified basis
-   assert page.locator('#fin-market').input_value()==''
+   assert 'NOT SPECIFIED · SOURCE' in page.locator('#fin-market-basis').inner_text()
+   assert 'Indicative · Level Mismatch' in page.locator('#fin-source-review').inner_text()
+   assert float(page.locator('#fin-market').input_value())>2000
    page.locator('#scenario-location').select_option('slovakia')
-   assert 'Indicative Estimate' in page.locator('#fin-source-review').inner_text()
-   assert page.locator('#fin-market').input_value()==''  # NOT inserted without acceptance
-   assert page.locator('#fin-use-indicative').count()==1
-   page.locator('#fin-use-indicative').click()
+   assert 'GROSS · SOURCE' in page.locator('#fin-market-basis').inner_text()
+   assert 'Indicative · Level Mismatch' in page.locator('#fin-source-review').inner_text()
    assert float(page.locator('#fin-market').input_value())>3000
-   assert 'User-approved indicative' in page.locator('#fin-market-source').inner_text()
-   assert page.locator('#fin-use-indicative').count()==0
    page.locator('#decision-grade').select_option('junior')
-   assert page.locator('#fin-market').input_value()==''  # approval revoked on grade change
-   assert page.locator('#fin-use-indicative').count()==1
+   assert float(page.locator('#fin-market').input_value())>3000  # Misaligned grade still marked indicative
    page.locator('#scenario-location').select_option('portugal')
    page.locator('#decision-grade').select_option('mid')
-   assert 'Verified Match' in page.locator('#fin-source-review').inner_text()
+   assert 'Role & Level Match' in page.locator('#fin-source-review').inner_text()
+   assert 'GROSS · SOURCE' in page.locator('#fin-market-basis').inner_text()
    assert float(page.locator('#fin-market').input_value())>3000
    assert page.locator('#fin-use-indicative').count()==0
-   page.locator('#scenario-location').select_option('armenia')
-   assert page.locator('#fin-market').input_value()==''
-   # The displayed evidence explains both the reason for non-insertion and a manual alternative.
+   page.locator('#scenario-location').select_option('india')
+   assert page.locator('#fin-market').input_value()==''  # Broad-family CTC is NOT salary.
    assert 'Context Only' in page.locator('#fin-source-review').inner_text()
-   assert 'Enter a More Accurate Gross Rate Manually' in page.locator('#fin-source-review').inner_text()
+   assert 'CTC' in page.locator('#fin-market-source').inner_text()
+   page.locator('#scenario-location').select_option('armenia')
+   assert page.locator('#fin-market').input_value()=='3300'
+   assert 'Enter a More Accurate Rate Manually' in page.locator('#fin-source-review').inner_text()
    page.locator('#fin-edit-manual').click()
    assert page.locator('#fin-market').evaluate('(e)=>document.activeElement===e')
    page.locator('#fin-market').fill('4300')
    assert page.locator('#fin-market').input_value()=='4300'
    assert 'Manual Estimate' in page.locator('#fin-source-review').inner_text()
-   assert 'not a verified market average' in page.locator('#fin-source-review').inner_text()
+   assert 'not specified' in page.locator('#fin-source-review').inner_text()
    assert 'MANUAL' in page.locator('#fin-status').inner_text()
    page.locator('#scenario-location').select_option('georgia')
-   assert page.locator('#fin-market').input_value()==''  # User-defined Armenia rate cannot cross country boundaries.
+   assert page.locator('#fin-market').input_value()!='4300'  # Manual Armenia rate cannot cross country boundaries.
+   assert 'NOT SPECIFIED · SOURCE' in page.locator('#fin-market-basis').inner_text()
    page.locator('#scenario-location').select_option('armenia')
+   page.locator('#fin-internal').fill('4000')  # Explicit stable baseline for independent cost-model tests
+   assert page.locator('#fin-internal').input_value()=='4000'
+   assert page.locator('#fin-raise').input_value()=='348'
    first_costs=page.locator('#decision-chart .decision-bar-money strong').all_text_contents()
    page.locator('#fin-period').select_option('annual')
    assert page.locator('#fin-internal').input_value()=='48000'
    assert page.locator('#fin-raise').input_value()=='4176'
    assert page.locator('#fin-training').input_value()=='1023'
+   assert page.locator('#fin-market').input_value()=='39600'
    assert page.locator('#decision-chart .decision-bar-money strong').all_text_contents()==first_costs
    page.locator('#fin-period').select_option('monthly')
    assert page.locator('#fin-internal').input_value()=='4000'
@@ -126,7 +159,7 @@ def main():
    assert page.locator('#hire-external').text_content()=='$20,000'
    assert page.locator('#hire-internal').text_content()=='$11,223'
    assert page.locator('#r-keep').text_content()=='$53,199'
-   assert page.locator('#r-replace').text_content()=='$74,000'
+   assert page.locator('#r-replace').text_content().startswith('$')  # Rate is source-based, so legacy demo total is obsolete
    assert page.locator('#t-p-total').text_content().startswith('$')
    assert page.locator('#decision-chart .decision-bar-row').count()==9
    assert page.locator('#decision-chart .decision-bar-row--empty').count()==2

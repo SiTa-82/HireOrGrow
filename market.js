@@ -50,7 +50,7 @@ const sourceHosts=new Set(['salarybyrole.com','www.salarybyrole.com','yubhub.co'
 const allMarkets=Object.keys(MARKETS);
 const marketPresets={eu:allMarkets.filter(x=>MARKETS[x].region==='eu'),us:['united-states'],global:allMarkets};
 const selectedMarkets=()=>Array.from(document.querySelectorAll('.m-country:checked')).map(x=>x.value);
-const SOURCE_FILES={refs:'./data/salary_references.json?v=0.9.8',jobs:'./data/georgia_live.json?v=0.9.8',auto:'./data/automatic_market.json?v=0.9.8',history:'./data/rate_history.json?v=0.9.8'};
+const SOURCE_FILES={refs:'./data/salary_references.json?v=0.9.10',jobs:'./data/georgia_live.json?v=0.9.10',auto:'./data/automatic_market.json?v=0.9.10',history:'./data/rate_history.json?v=0.9.10'};
 let rateHistory={observations:[],lastCheckedAt:null}, referenceRecords=[], georgiaFeed={status:'not_collected',roles:{},generatedAt:null};
 let automated={generatedAt:null,providers:{},salaryRecords:[],vacancyRecords:[]};
 let marketError=[],marketBusy=false,lastLoad=0,marketOpened=false,referenceLoaded=false,fxRates={USD:1},fxDates={},fxDate=null;

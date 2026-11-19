@@ -1,3 +1,12 @@
+## v0.9.10 — NET/GROSS rates as reported · 19 November 2026
+
+- Financial Assumptions no longer rejects NET or unspecified-pay-basis salary evidence. Source salary amount is auto-filled in the selected currency when FX is available, keeping the original pay basis, grade, period, date, source and midpoint/median method visible.
+- When the exact occupation has only other-grade or all-grade evidence, the value also auto-fills with an **Indicative · Level Mismatch** warning; no junior/senior multiplier is invented.
+- Broader job-family estimates and CTC remain context only. Unknown FX never inserts one currency as another.
+- Market and default internal salary inputs display their pay basis; manual values are marked **basis not specified**. NET is never converted to GROSS. Financial calculator outputs remain directional proxies with a visible limitation.
+- Monthly/Annual rate switch remains reversible. Added regression tests for NET, GROSS, unknown pay basis, manual overrides, grade differences and absent FX.
+- No new pay sources, employee-readiness logic or full UX redesign in this patch; those remain separate tracks.
+
 # HireOrGrow v0.9.9 — Calculator Guidance Placement
 
 - Moved **Read the charts independently** guidance from above Financial Assumptions to directly above the three Decision Calculators.
