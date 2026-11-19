@@ -22,6 +22,13 @@ const MARKETS = {
 };
 const scopeNames = {'eu':'European Union (EU)','global':'Global / cross-border','united-states':'United States (US)'};
 const selectedScope = () => scopeNames[el('scenario-location').value] || MARKETS[el('scenario-location').value]?.name || 'Selected market';
+// v0.9.11: internal paths are not feasible until a candidate is identified.
+// "Not assessed" is distinct from "No" and is never treated as zero cost.
+const talentCandidateStatus = path => el('fin-'+path+'-available').value;
+const internalPathAvailable = () => ['promotion','reskill'].some(path=>talentCandidateStatus(path)==='yes');
+const internalPathPending = () => ['promotion','reskill'].some(path=>talentCandidateStatus(path)==='unknown');
+const pathStatusText = status => status==='no'?'No suitable candidate':status==='unknown'?'Candidate not assessed':'Candidate identified';
+
 function updateScenarioLocation(){
   const loc=selectedScope();
   document.querySelectorAll('.scenario-context').forEach(node => node.textContent = `Selected location: ${loc} · Costs are entered manually. No local taxes or FX conversion are applied.`);
@@ -34,22 +41,24 @@ function renderDecisionOverview(){
  const groups=[decisionModels.hire,decisionModels.replace,decisionModels.talent].filter(Boolean);
  root.innerHTML=groups.map(group=>{
    const options=group.options;
-   const best=Math.min(...options.map(o=>o.cost));
-   const second=[...options].sort((a,b)=>a.cost-b.cost)[1]?.cost;
-   const winners=options.filter(o=>Math.abs(o.cost-best)<.005);
+   const feasible=options.filter(o=>o.available!==false && Number.isFinite(o.cost));
+   const best=feasible.length?Math.min(...feasible.map(o=>o.cost)):null;
+   const second=[...feasible].sort((a,b)=>a.cost-b.cost)[1]?.cost;
+   const winners=feasible.filter(o=>Math.abs(o.cost-best)<.005);
    const tied=winners.length>1;
-   const maxVal=Math.max(1,...options.map(o=>Math.max(0,o.cost)));
+   const maxVal=Math.max(1,...feasible.map(o=>Math.max(0,o.cost)));
    const key=group.key;
    const costPeriod=group.key==='hire'?'One-Time Cost':group.key==='replace'?`${n('r-months')}-Month Total Cost`:`${n('t-horizon')}-Month Incremental Cost`;
    const perValue=group.key==='hire'?'one-time':group.key==='replace'?`${n('r-months')}-month total`:`${n('t-horizon')}-month incremental`;
-   const summary=tied?'Equal Lowest Modeled Costs':`${winners[0].name} · ${money(best)}`;
-   const next= !tied && Number.isFinite(second)?`${money(Math.max(0,second-best))} Below Next Alternative`:'No Cost Difference';
+   const summary=feasible.length===0?'No Feasible Scenario Within Horizon':feasible.length===1?`${winners[0].name} · Only Assessed Feasible Option`:tied?'Equal Lowest Modeled Costs':`${winners[0].name} · ${money(best)}`;
+   const next=feasible.length===0?'Revise candidate or timeframe assumptions':feasible.length===1?'Cannot rank against unavailable or unassessed options':!tied && Number.isFinite(second)?`${money(Math.max(0,second-best))} Below Next Alternative`:'No Cost Difference';
    // Each card uses exactly three aligned scenario slots. Missing scenarios and
    // unavailable lead times reserve space, rather than shifting the bars upward.
    const bars=Array.from({length:3},(_,index)=>{
       const o=options[index];
       if(!o)return '<div class="decision-bar-row decision-bar-row--empty" aria-hidden="true"></div>';
-      const isLowest=Math.abs(o.cost-best)<.005;
+      if(o.available===false)return `<div class="decision-bar-row"><div class="decision-bar-label"><span>${safe(o.name)}</span><span class="decision-bar-money"><strong>—</strong><small>${safe(o.unavailableReason||'Not feasible')}</small></span></div><span class="decision-bar-detail">Not included in cost ranking</span><div class="decision-bar-track"></div><span class="decision-lowest-placeholder" aria-hidden="true">&nbsp;</span></div>`;
+      const isLowest=feasible.length>1&&Math.abs(o.cost-best)<.005;
       const width=Math.max(0,Math.min(100,100*Math.max(o.cost,0)/maxVal));
       return `<div class="decision-bar-row" title="${safe(o.name)}: ${safe(money(o.cost))}">
        <div class="decision-bar-label"><span>${safe(o.name)}</span><span class="decision-bar-money"><strong>${safe(money(o.cost))}</strong><small>${safe(perValue)}</small></span></div>
@@ -106,7 +115,7 @@ function renderFinPeriod(){
  const unit=el('fin-period').value==='monthly'?'Month':'Year';
  set('fin-market-label',`Market Salary Rate / ${unit} (${currency()})`);
  set('fin-internal-label',`Internal Salary Rate / ${unit} (${currency()})`);
- set('fin-raise-label',`Promotion / Retention Raise / ${unit}`);
+ set('fin-raise-label',`Possible Salary Increase / ${unit}`);
  set('fin-raise-note',finManual.raise?'Custom raise entered manually; shown per '+unit.toLowerCase()+'.':'Default: 8.7% of entered internal salary, shown per '+unit.toLowerCase()+' (Mercer US promotion survey).');
 }
 function switchFinPeriod(){
@@ -271,23 +280,25 @@ function applyFinancialAssumptions(){
 function calculateHire(){
   const external=n('he-recruit')+n('he-onboard')+n('he-vacancy')+n('he-ramp');
   const internal=n('hi-recruit')+n('hi-onboard')+n('hi-vacancy')+n('hi-ramp')+n('hi-backfill');
-  const diff=Math.abs(external-internal);
+  const canInternal=internalPathAvailable();
+  const internalReason=internalPathPending()?'Candidate not assessed':'No suitable candidate';
+  const diff=canInternal?Math.abs(external-internal):null;
   const winner=external===internal?'Both options':external<internal?'External hire':'Internal transfer';
-  set('hire-external',money(external));set('hire-internal',money(internal));
-  set('he-value',money(external));set('hi-value',money(internal));set('hire-delta',money(diff));
-  set('hire-take',external===internal?'Equal one-off costs':`${winner} has ${money(diff)} lower one-off costs`);
-  const max=Math.max(external,internal,1);el('he-bar').style.width=pct(external,max);el('hi-bar').style.width=pct(internal,max);
+  set('hire-external',money(external));set('hire-internal',canInternal?money(internal):'—');
+  set('he-value',money(external));set('hi-value',canInternal?money(internal):'—');set('hire-delta',canInternal?money(diff):'Not comparable');
+  set('hire-take',!canInternal?'External hire is the only assessed feasible option':external===internal?'Equal one-off costs':`${winner} has ${money(diff)} lower one-off costs`);
+  const max=Math.max(external,canInternal?internal:0,1);el('he-bar').style.width=pct(external,max);el('hi-bar').style.width=canInternal?pct(internal,max):'0%';
   const role=el('role').value.trim()||'unspecified role';
-  const narrative=`For ${role} in ${selectedScope()}, one-off economic costs are ${money(external)} for external hiring and ${money(internal)} for an internal transfer. `+
-   (external===internal?'Both scenarios have the same modeled cost.':`${winner} has ${money(diff)} lower modeled cost.`)+
+  const narrative=`For ${role} in ${selectedScope()}, one-off economic costs are ${money(external)} for external hiring${canInternal?' and '+money(internal)+' for an internal transfer':''}. `+
+   (!canInternal?`Internal transfer is excluded (${internalReason.toLowerCase()}).`:external===internal?'Both scenarios have the same modeled cost.':`${winner} has ${money(diff)} lower modeled cost.`)+
    ` Time to start: external ${n('he-days')} days, internal ${n('hi-days')} days. Lead time is contextual and not charged again. Backfilling the internal candidate’s prior role is estimated at ${money(n('hi-backfill'))}. Annual salary and candidate readiness require separate analysis.`;
   set('hire-summary',narrative);
   const mr=annualFin('market'),ir=annualFin('internal'),inc=annualFin('raise')||0;
   const ov=1+(fm('fin-overhead')||0)/100;
-  set('hire-payroll-12mo',mr!==null&&ir!==null?
+  set('hire-payroll-12mo',mr!==null&&ir!==null&&canInternal?
    `Separate 12-month salary-inclusive projection (not included in the bars): external ${money(external+mr*ov)} vs. internal ${money(internal+(ir+inc)*ov)}. Assumes a full year of pay after start, so excludes vacancy timing; internal backfill remains in one-off costs. Validate with Finance. ${financialCostCaveat()}`:
-   `Salary-inclusive comparison unavailable: no usable salary in the chosen currency. One-off bars remain valid for the manually entered transition assumptions.`);
-  decisionModels.hire={key:'hire',title:'External vs. Internal Hire',basis:'One-Time Cost to Fill a Position',note:'Time to start shown in approximate months. Compensation after hire is excluded.',options:[{name:'External hire',cost:external,detail:`≈ ${(n('he-days')/30.44).toFixed(1)} months to start`},{name:'Internal transfer',cost:internal,detail:`≈ ${(n('hi-days')/30.44).toFixed(1)} months to start`}]};renderDecisionOverview();
+   canInternal?'Salary-inclusive comparison unavailable: no usable salary in the chosen currency. One-off bars remain valid for manually entered transition assumptions.':`Salary-inclusive internal comparison unavailable: ${internalReason.toLowerCase()}. External pay can still be estimated independently.`);
+  decisionModels.hire={key:'hire',title:'External vs. Internal Hire',basis:'One-Time Cost to Fill a Position',note:'Time to start shown in approximate months. Compensation after hire is excluded.',options:[{name:'External hire',cost:external,detail:`≈ ${(n('he-days')/30.44).toFixed(1)} months to start`},{name:'Internal transfer',cost:internal,available:canInternal,unavailableReason:internalReason,detail:`≈ ${(n('hi-days')/30.44).toFixed(1)} months to start`}]};renderDecisionOverview();
   hireReport='HireOrGrow — Cost to Fill\n'+narrative+'\nAssumptions entered by the user; this is not a hiring recommendation.';
 }
 function calculateReplace(){
@@ -312,34 +323,47 @@ function calculateReplace(){
 }
 function calculateTalent(){
  const months=n('t-horizon'),active=d=>Math.max(0,months-Math.min(months,d));
- const extPay=n('t-e-new')*active(n('t-e-delay'))/12;
- const extOther=n('t-e-recruit')+n('t-e-onboard'),extLoss=n('t-e-vacancy')+n('t-e-ramp');
- const promPay=(n('t-p-new')-n('t-p-old')+n('t-p-backfill'))*active(n('t-p-delay'))/12;
+ const monthlyDelayImpact=fm('fin-delay-impact');
+ const impactEnabled=monthlyDelayImpact!==null;
+ const eStart=n('t-e-delay'),pStart=n('t-p-delay'),sStart=n('t-s-delay');
+ const eReady=eStart+n('t-e-ramp-months'),pReady=pStart+n('t-p-ramp-months'),sReady=sStart;
+ const timeCost=ready=>impactEnabled?monthlyDelayImpact*Math.min(months,ready):0;
+ const extPay=n('t-e-new')*active(eStart)/12;
+ const extOther=n('t-e-recruit')+n('t-e-onboard');
+ const extLoss=impactEnabled?timeCost(eReady):n('t-e-vacancy')+n('t-e-ramp');
+ const promPay=(n('t-p-new')-n('t-p-old')+n('t-p-backfill'))*active(pStart)/12;
  const promOther=n('t-p-admin')+n('t-p-train')+(n('t-p-backfill')>0?n('t-p-backfill-one'):0);
- const promLoss=n('t-p-loss')+n('t-p-oldloss');
- const skillPay=(n('t-s-new')-n('t-s-old')+n('t-s-backfill'))*active(n('t-s-delay'))/12;
+ const promLoss=(impactEnabled?timeCost(pReady):n('t-p-loss'))+n('t-p-oldloss');
+ const skillPay=(n('t-s-new')-n('t-s-old')+n('t-s-backfill'))*active(sStart)/12;
  const skillOther=n('t-s-train')+n('t-s-mentor')+(n('t-s-backfill')>0?n('t-s-backfill-one'):0);
- const skillLoss=n('t-s-learning-loss')+n('t-s-newloss')+n('t-s-oldloss');
- const rows=[{name:'External hire',short:'t-e',delay:n('t-e-delay'),pay:extPay,other:extOther,loss:extLoss},
-             {name:'Promotion',short:'t-p',delay:n('t-p-delay'),pay:promPay,other:promOther,loss:promLoss},
-             {name:'Reskilling',short:'t-s',delay:n('t-s-delay'),pay:skillPay,other:skillOther,loss:skillLoss}];
- rows.forEach(r=>r.total=r.pay+r.other+r.loss);
- const lowest=Math.min(...rows.map(r=>r.total));
- const winners=rows.filter(r=>Math.abs(r.total-lowest)<0.005).map(r=>r.name);
+ const skillLoss=n('t-s-learning-loss')+(impactEnabled?timeCost(sReady):n('t-s-newloss'))+n('t-s-oldloss');
+ const promStatus=talentCandidateStatus('promotion'),skillStatus=talentCandidateStatus('reskill');
+ const rows=[
+   {name:'External hire',short:'t-e',delay:eReady,active:true,pay:extPay,other:extOther,loss:extLoss,timeImpact:timeCost(eReady)},
+   {name:'Promotion',short:'t-p',delay:pReady,active:promStatus==='yes',reason:pathStatusText(promStatus),pay:promPay,other:promOther,loss:promLoss,timeImpact:timeCost(pReady)},
+   {name:'Reskilling',short:'t-s',delay:sReady,active:skillStatus==='yes',reason:pathStatusText(skillStatus),pay:skillPay,other:skillOther,loss:skillLoss,timeImpact:timeCost(sReady)}
+ ];
+ rows.forEach(r=>{r.total=r.pay+r.other+r.loss;r.rankable=r.active && r.delay<months;if(r.active&&!r.rankable)r.reason=`Not productive within ${months}-month horizon`;});
+ const eligible=rows.filter(r=>r.rankable),lowest=eligible.length?Math.min(...eligible.map(r=>r.total)):null;
+ const winners=eligible.filter(r=>Math.abs(r.total-lowest)<0.005).map(r=>r.name);
  rows.forEach(r=>{
-   set(r.short+'-total',money(r.total));
-   set(r.short+'-brief',`Ready in ${r.delay} months · cash cost ${money(r.pay+r.other)}`);
-   el(r.short+'-card').classList.toggle('best',Math.abs(r.total-lowest)<.005);
+   set(r.short+'-total',r.rankable?money(r.total):'—');
+   set(r.short+'-brief',r.rankable?`Full productivity in ${r.delay} months · cash cost ${money(r.pay+r.other)}`:`${r.reason} · not compared`);
+   el(r.short+'-card').classList.toggle('best',r.rankable&&eligible.length>1&&Math.abs(r.total-lowest)<.005);
  });
- set('t-min',money(lowest));
- set('t-winner',winners.length===1?'Lowest modeled cost: '+winners[0]:'Equal modeled costs: '+winners.join(' / '));
- el('t-breakdown').innerHTML=rows.map(r=>`<div class="sc-row"><span>${safe(r.name)}</span><b>${safe(money(r.pay))} payroll delta + ${safe(money(r.other))} direct costs + ${safe(money(r.loss))} estimated productivity loss</b></div>`).join('');
- const notReady=rows.some(r=>r.delay>=months)?' Caution: at least one option is not ready within the selected horizon; a zero future payroll line does not mean the role is filled.':'';
+ set('t-min',lowest===null?'—':money(lowest));
+ set('t-min-label',eligible.length===0?'No feasible option within this horizon':eligible.length===1?'Only assessed feasible option · cost':'Lowest estimated incremental cost');
+ set('t-winner',eligible.length===0?'Choose a longer horizon or revise assumptions':eligible.length===1?'Only assessed feasible scenario: '+eligible[0].name:winners.length===1?'Lowest modeled cost: '+winners[0]:'Equal modeled costs: '+winners.join(' / '));
+ el('t-breakdown').innerHTML=rows.map(r=>r.rankable?`<div class="sc-row"><span>${safe(r.name)} · ${r.delay.toFixed(1)} months to full productivity</span><b>${safe(money(r.pay))} payroll delta + ${safe(money(r.other))} direct costs + ${safe(money(r.loss))} estimated productivity loss${impactEnabled?' (including '+safe(money(r.timeImpact))+' time impact)':''}</b></div>`:`<div class="sc-row"><span>${safe(r.name)}</span><b>${safe(r.reason)} · excluded from comparison</b></div>`).join('');
+ const notReady=rows.some(r=>r.active&&!r.rankable)?' At least one identified candidate is not fully productive within the selected horizon, so that scenario is excluded from the ranking.': '';
+ const timeNote=impactEnabled?` Time-to-productivity impact uses ${money(monthlyDelayImpact)} per month, capped at ${months} months; this replaces target-role vacancy and ramp-up loss inputs in this calculator. Do not duplicate those losses in learning/previous-role fields.`:' Waiting time is shown but not monetized automatically. Supply an optional business-impact-per-month estimate to compare time and money; manually entered vacancy losses remain in the estimates.';
+ const candidateNote=` Promotion: ${pathStatusText(promStatus)}. Reskilling: ${pathStatusText(skillStatus)}.`;
  const role=el('t-role').value.trim()||'unspecified role';
- const narrative=`For ${role} in ${selectedScope()} over ${months} months: external hire ${money(rows[0].total)}, promotion ${money(rows[1].total)}, reskilling ${money(rows[2].total)}. Cash costs and estimated productivity losses are shown separately. The lowest cost does not establish candidate readiness.${notReady} ${financialCostCaveat()}`;
+ const scenarioText=rows.map(r=>r.rankable?`${r.name} ${money(r.total)} (${r.delay} months to full productivity)`:`${r.name} excluded (${r.reason.toLowerCase()})`).join('; ');
+ const narrative=`For ${role} in ${selectedScope()} over ${months} months: ${scenarioText}. ${eligible.length===0?'No modeled option reaches full productivity within the horizon.':eligible.length===1?'There is only one feasible assessed option to rank.':'Cash costs and estimated productivity losses are reported separately.'}${candidateNote}${timeNote}${notReady} The lowest modeled cost is not a staffing recommendation. ${financialCostCaveat()}`;
  set('t-narrative',narrative);
- decisionModels.talent={key:'talent',title:'Hire, Promote, or Reskill',basis:`Incremental Cost · ${months}-Month Horizon`,note:'Internal moves include backfill assumptions. Readiness and competence must be assessed separately.',options:rows.map(r=>({name:r.name,cost:r.total,detail:`${r.delay.toFixed(1)} months to ready`}))};renderDecisionOverview();
- talentReport='HireOrGrow — Internal Talent scenarios\n'+narrative+'\n'+rows.map(r=>`${r.name}: ${money(r.total)}; incremental payroll incl. backfill ${money(r.pay)}; direct costs ${money(r.other)}; estimated losses ${money(r.loss)}`).join('\n')+'\nFinance approval required. Not an automated HR decision.';
+ decisionModels.talent={key:'talent',title:'Hire, Promote, or Reskill',basis:`Incremental Cost · ${months}-Month Horizon`,note:impactEnabled?'Monthly business cost of time is included; feasibility assessed separately.':'Time to productivity is shown but not fully monetized; enter business impact per month to complete the trade-off.',options:rows.map(r=>({name:r.name,cost:r.total,available:r.rankable,unavailableReason:r.reason,detail:`${r.delay.toFixed(1)} months to full productivity`}))};renderDecisionOverview();
+ talentReport='HireOrGrow — Internal Talent scenarios\n'+narrative+'\n'+rows.map(r=>r.rankable?`${r.name}: ${money(r.total)}; ${r.delay} months to full productivity; incremental payroll incl. backfill ${money(r.pay)}; direct costs ${money(r.other)}; estimated losses ${money(r.loss)}`:`${r.name}: ${r.reason}; excluded from comparison`).join('\n')+'\nFinance approval required. Not an automated HR decision.';
 }
 function showTab(tab){
  const decision=tab==='decision';
@@ -378,6 +402,16 @@ for(const fld of ['market','internal','raise','training'])el('fin-'+fld).addEven
 });
 el('fin-period').addEventListener('change',switchFinPeriod);
 el('fin-overhead').addEventListener('input',applyFinancialAssumptions);
+// Separate functional controls: candidate feasibility, time to readiness, cost of delay.
+for(const kind of ['promotion','reskill']){
+ el('fin-'+kind+'-available').addEventListener('change',()=>{calculateHire();calculateTalent()});
+}
+for(const [quick,detail] of [['fin-promotion-months','t-p-delay'],['fin-reskill-months','t-s-delay']]){
+ el(quick).addEventListener('input',()=>{el(detail).value=el(quick).value;calculateTalent()});
+ el(detail).addEventListener('input',()=>{el(quick).value=el(detail).value});
+}
+el('fin-delay-impact').addEventListener('input',calculateTalent);
+
 el('fin-reset').addEventListener('click',()=>refreshFinancialBenchmark({reset:true}));
 el('scenario-location').addEventListener('change',()=>{updateScenarioLocation();refreshFinancialBenchmark()});
 el('decision-role').addEventListener('change',()=>{syncDecisionRole(el('decision-role'));refreshFinancialBenchmark()});

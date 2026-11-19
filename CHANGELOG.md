@@ -1,3 +1,12 @@
+## v0.9.11 — Candidate feasibility and cost of time · 19 November 2026
+
+- Explicit candidate availability for Promotion and Reskilling (Yes / No / Not assessed).
+- Internal option without an identified, timely candidate excluded from cost ranking.
+- Promotion and Reskilling readiness inputs synchronized with detailed calculators.
+- Optional monthly impact of time to full productivity, replacing overlapping target-role loss assumptions in the three-way talent comparison.
+- CEO breakdown/report distinguishes cost from feasibility and indicates incomplete time monetization.
+- No CSS, GitHub Actions, source, or market data changes.
+
 ## v0.9.10 — NET/GROSS rates as reported · 19 November 2026
 
 - Financial Assumptions no longer rejects NET or unspecified-pay-basis salary evidence. Source salary amount is auto-filled in the selected currency when FX is available, keeping the original pay basis, grade, period, date, source and midpoint/median method visible.

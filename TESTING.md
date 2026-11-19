@@ -83,3 +83,7 @@ python tests/test_salary_evidence.py
 python tests/test_auto_sources.py
 python tests/test_source_pipeline.py
 ```
+
+### v0.9.11 candidate readiness and time-cost tests
+
+Run `python tests/test_candidate_feasibility.py` in addition to `python tests/test_browser.py`. The tests assert that unassessed or unavailable candidates are not cost-ranked, manual raise/training values are connected to the detailed models, time-to-ready inputs synchronize, and an optional monthly delay cost replaces overlapping target-role loss assumptions without counting a candidate who is not productive during the selected horizon.

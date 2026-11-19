@@ -1,4 +1,4 @@
-# HireOrGrow 0.9.10 — Decision Comparison + automated evidence
+# HireOrGrow 0.9.11 — Decision Comparison + automated evidence
 
 A public, static, English-language preview of HireOrGrow.
 
@@ -13,19 +13,9 @@ A public, static, English-language preview of HireOrGrow.
 2. In GitHub repository root, choose Add file → Upload files.
 3. Upload the **contents** of the extracted folder, with `index.html`, `app.js`, `market.js`, and `styles.css` at root, not inside another parent folder. Keep `data/`, `scripts/`, `tests/` and `.github/workflows/` paths as shipped.
 4. Commit to `main` and review Actions. GitHub Pages remains configured to use GitHub Actions.
-5. Visit the site and hard-reload; verify footer `v0.9.9`.
+5. Visit the site and hard-reload; verify footer `v0.9.11`.
 
 See TESTING.md and SECURITY.md.
-### Interface notes (v0.9.10)
-Что исправлено
-- NET, GROSS и Not Specified автоматически подставляются в Financial Assumptions.
-- Ставки другого грейда тоже подставляются, но отмечаются как Indicative.
-- Сохраняются источник, валюта, период и тип зарплаты.
-- Переключатель Monthly / Annual работает без повторного пересчёта ставок.
-- Ручные значения имеют приоритет.
-- NET не превращается в GROSS, а финансовые сравнения с NET сопровождаются предупреждением.
-- CTC и данные по слишком широким категориям профессий остаются справочной информацией.
-Проверки: браузерный тест и четыре дополнительных набора тестов прошли успешно, включая адаптивную версию интерфейса.
 
 ### Interface notes (v0.9.2)
 The Decision Comparison navigation explicitly names external vs. internal hire, retain vs. replace, and hire/promote/reskill. Charts are deliberately **unnumbered** and must be read independently: they cover different cost horizons and baselines. The *Scenario location* selector supplies report context only; changing it does not recalculate compensation, taxes or FX. Market reference data is presented in a separate **Salary Benchmarks** section.
@@ -111,3 +101,7 @@ calculated. The product is not an HR recommendation system.
 ### v0.9.9: Calculator guidance
 
 The **Read the charts independently** notice is displayed inside **Decision Calculators**, immediately before the comparison charts rather than before Financial Assumptions. Context-only salary evidence explains requested vs. published seniority grades.
+
+## Core decision logic v0.9.11
+
+Candidate availability, readiness periods, and optional monthly business impact are described in [CORE_PATCH_README.md](CORE_PATCH_README.md). These inputs explicitly distinguish an unavailable/unassessed internal option from a cheap option. The frontend styling and UX-01 patch remain separate.

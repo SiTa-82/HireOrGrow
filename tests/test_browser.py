@@ -1,4 +1,4 @@
-"""Functional regression test for v0.9.10 financial assumptions and rate trends."""
+"""Functional regression test for v0.9.11 financial assumptions and rate trends."""
 import json
 from pathlib import Path
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
@@ -29,7 +29,7 @@ def main():
    page.route('https://hireorgrow.example/data/**',lambda route:route.fulfill(
        content_type='application/json',body=(ROOT/'data'/route.request.url.split('/data/')[1].split('?')[0]).read_text('utf8')))
    page.route('https://hireorgrow.example/data/automatic_market.json*',lambda route:route.fulfill(content_type='application/json',body=json.dumps({
-      'version':'0.9.10','generatedAt':'2026-11-18T14:00:00Z',
+      'version':'0.9.11','generatedAt':'2026-11-18T14:00:00Z',
       'providers':{'salarybyrole':{'status':'ok','records':3},'yubhub':{'status':'ok','records':1}},
       'salaryRecords':[{'country':'netherlands','role':'devops-engineer','grade':'mid','source':'SalaryByRole (automated API)',
        'url':'https://salarybyrole.com/api/salary?role=devops-engineer&country=netherlands','type':'aggregated_api_estimate',
@@ -42,13 +42,22 @@ def main():
        'observedDate':'2026-11-18','fetchedAt':'2026-11-18T14:00:00Z'}]
    })))
    html=(ROOT/'index.html').read_text('utf8')
-   html=html.replace('<link href="./styles.css?v=0.9.10" rel="stylesheet"/>','<style>'+(ROOT/'styles.css').read_text('utf8')+'</style>')
-   html=html.replace('<script src="./app.js?v=0.9.10"></script>','<script>'+(ROOT/'app.js').read_text('utf8')+'</script>')
-   html=html.replace('<script src="./market.js?v=0.9.10"></script>','<script>'+(ROOT/'market.js').read_text('utf8')+'</script>')
+   html=html.replace('<link href="./styles.css?v=0.9.11" rel="stylesheet"/>','<style>'+(ROOT/'styles.css').read_text('utf8')+'</style>')
+   html=html.replace('<script src="./app.js?v=0.9.11"></script>','<script>'+(ROOT/'app.js').read_text('utf8')+'</script>')
+   html=html.replace('<script src="./market.js?v=0.9.11"></script>','<script>'+(ROOT/'market.js').read_text('utf8')+'</script>')
    html=html.replace('http-equiv="Content-Security-Policy"','http-equiv="Test-Only-CSP"')
    html=html.replace('<head>','<head><base href="https://hireorgrow.example/">')
    page.set_content(html,wait_until='domcontentloaded')
-   assert '0.9.10' in page.title()
+   assert '0.9.11' in page.title()
+   # Do not silently assume a candidate exists: unassessed paths are excluded.
+   assert page.locator('#fin-promotion-available').input_value()=='unknown'
+   assert page.locator('#fin-reskill-available').input_value()=='unknown'
+   page.wait_for_function("document.querySelector('#t-winner').textContent.length > 2",timeout=15000)
+   assert 'Only assessed feasible scenario' in page.locator('#t-winner').text_content()
+   assert 'Not assessed' in page.locator('#t-breakdown').text_content() or 'not assessed' in page.locator('#t-breakdown').text_content()
+   # Existing regression tests below use the two demo candidates explicitly.
+   page.locator('#fin-promotion-available').select_option('yes')
+   page.locator('#fin-reskill-available').select_option('yes')
    assert page.locator('#tab-decision').get_attribute('aria-selected')=='true'
    assert page.locator('#tab-decision .top-nav-symbol svg').count()==1
    assert page.locator('#tab-market .top-nav-symbol svg').count()==1
@@ -105,7 +114,7 @@ def main():
    assert 'one-time' in page.locator('#decision-chart').inner_text()
    assert '12-month total' in page.locator('#decision-chart').inner_text()
    assert '12-month incremental' in page.locator('#decision-chart').inner_text()
-   # v0.9.10: same-role NET, GROSS and unspecified salary auto-fill.
+   # v0.9.11: same-role NET, GROSS and unspecified salary auto-fill.
    assert 'Indicative · Level Mismatch' in page.locator('#fin-source-review').inner_text()
    assert page.locator('#fin-use-indicative').count()==0
    page.locator('#scenario-location').select_option('georgia')
@@ -175,9 +184,9 @@ def main():
    assert all('Edit Assumptions' in x for x in page.locator('#decision-chart .decision-chart-edit').all_text_contents())
    assert '≈ 2.0 months to start' in page.locator('#decision-chart').inner_text()
    assert '≈ 1.0 months to start' in page.locator('#decision-chart').inner_text()
-   assert '2.0 months to ready' in page.locator('#decision-chart').inner_text()
-   assert '1.0 months to ready' in page.locator('#decision-chart').inner_text()
-   assert '4.0 months to ready' in page.locator('#decision-chart').inner_text()
+   assert '2.0 months to full productivity' in page.locator('#decision-chart').inner_text()
+   assert '1.0 months to full productivity' in page.locator('#decision-chart').inner_text()
+   assert '4.0 months to full productivity' in page.locator('#decision-chart').inner_text()
 
    # Three desktop cards share the same horizontal bands from heading to actions.
    for selector in ['.decision-chart-head','.decision-chart-bars','.decision-chart-summary','.decision-chart-note','.decision-chart-edit']:
