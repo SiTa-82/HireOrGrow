@@ -16,6 +16,16 @@ A public, static, English-language preview of HireOrGrow.
 5. Visit the site and hard-reload; verify footer `v0.9.9`.
 
 See TESTING.md and SECURITY.md.
+### Interface notes (v0.9.10)
+Что исправлено
+- NET, GROSS и Not Specified автоматически подставляются в Financial Assumptions.
+- Ставки другого грейда тоже подставляются, но отмечаются как Indicative.
+- Сохраняются источник, валюта, период и тип зарплаты.
+- Переключатель Monthly / Annual работает без повторного пересчёта ставок.
+- Ручные значения имеют приоритет.
+- NET не превращается в GROSS, а финансовые сравнения с NET сопровождаются предупреждением.
+- CTC и данные по слишком широким категориям профессий остаются справочной информацией.
+Проверки: браузерный тест и четыре дополнительных набора тестов прошли успешно, включая адаптивную версию интерфейса.
 
 ### Interface notes (v0.9.2)
 The Decision Comparison navigation explicitly names external vs. internal hire, retain vs. replace, and hire/promote/reskill. Charts are deliberately **unnumbered** and must be read independently: they cover different cost horizons and baselines. The *Scenario location* selector supplies report context only; changing it does not recalculate compensation, taxes or FX. Market reference data is presented in a separate **Salary Benchmarks** section.
