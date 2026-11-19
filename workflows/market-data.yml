@@ -1,0 +1,106 @@
+name: Publish HireOrGrow and refresh public market evidence
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    - cron: '23 7 * * 1' # Weekly Monday at 07:23 UTC
+
+# Pages publishing plus write access for optional public history snapshots.
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: hireorgrow-pages
+  cancel-in-progress: true
+
+jobs:
+  collect-and-publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Check out project
+        uses: actions/checkout@v6
+
+      - name: Prepare Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+
+      # Georgia's previous findjobs.ge crawler is intentionally NOT used:
+      # its robots.txt did not permit this crawler. Preserve its blocked status.
+      # Pushes publish the committed static data immediately. Scheduled/manual
+      # runs additionally try permitted public API endpoints (no secrets).
+      - name: Refresh permitted API data (scheduled/manual only)
+        if: github.event_name != 'push'
+        run: python scripts/update_open_sources.py
+
+      - name: Record observed market rate history (scheduled/manual only)
+        if: github.event_name != 'push'
+        run: python scripts/update_rate_history.py
+
+      - name: Persist public API observations (best effort)
+        if: github.event_name != 'push'
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data/automatic_market.json data/rate_history.json
+          if git diff --cached --quiet; then
+            echo 'No new public source observations to commit.'
+          else
+            git commit -m 'chore: update public salary evidence and rate history [skip ci]'
+            git push origin HEAD:main || echo '::warning title=Rate-history persistence::Could not push snapshots to main. This deployment still uses the newly collected data, but subsequent runs may not retain the history; check branch permissions.'
+          fi
+
+      - name: Validate required public files
+        shell: bash
+        run: |
+          set -euo pipefail
+          for file in index.html app.js market.js styles.css .nojekyll \
+             data/salary_references.json data/georgia_live.json \
+             data/automatic_market.json data/rate_history.json; do
+            if [[ ! -f "$file" ]]; then
+              echo "::error title=Missing published file::$file is missing in the repository root"
+              exit 1
+            fi
+          done
+          for file in data/salary_references.json data/georgia_live.json \
+             data/automatic_market.json data/rate_history.json; do
+            python -m json.tool "$file" >/dev/null
+          done
+          echo 'All required public files are present and JSON parses successfully.'
+
+      - name: Build complete static site
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p site/data
+          cp index.html app.js market.js styles.css .nojekyll site/
+          cp data/salary_references.json data/georgia_live.json \
+             data/automatic_market.json data/rate_history.json site/data/
+          echo '## Public data included in this deployment' >> "$GITHUB_STEP_SUMMARY"
+          echo '- Reference salaries: data/salary_references.json' >> "$GITHUB_STEP_SUMMARY"
+          echo '- Georgian source status: data/georgia_live.json (crawler disabled)' >> "$GITHUB_STEP_SUMMARY"
+          echo '- Automatic market evidence: data/automatic_market.json' >> "$GITHUB_STEP_SUMMARY"
+          echo '- Observed rate history: data/rate_history.json' >> "$GITHUB_STEP_SUMMARY"
+          echo "- Trigger: ${{ github.event_name }}" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload static Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: site
+
+      - name: Deploy GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
