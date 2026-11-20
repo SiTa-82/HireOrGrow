@@ -35,7 +35,8 @@ def main():
         assert 'Candidate not assessed' in page.locator('#t-breakdown').text_content()
         assert 'Not included in cost ranking' in page.locator('#decision-chart').text_content()
         # Setup-first UI: inputs open immediately, comparison appears after the user requests it.
-        assert page.locator('#financial-assumptions-panel').evaluate('(e)=>e.open')
+        assert page.locator('#financial-assumptions-panel #fin-promotion-available').is_visible()
+        assert page.locator('#financial-assumptions-panel #scenario-location').count()==1
         assert page.locator('#decision-results').is_hidden()
         page.locator('#view-comparison').click()
         assert page.locator('#decision-results').is_visible()

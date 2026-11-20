@@ -504,8 +504,6 @@ header .badge{border-color:#cae6e4;color:#147d79;background:#ecf8f5;padding:7px 
 .financial-disclosure-summary strong{display:block;color:#164d60;font-size:16px;line-height:1.35}
 .financial-disclosure-summary small{display:block;color:#65838f;font-size:12px;line-height:1.45;margin-top:3px}
 .financial-summary-action{margin-left:auto;color:#0c7883;font-weight:750;font-size:12px;white-space:nowrap}
-.financial-summary-action span{display:inline-block;margin-left:5px;transition:transform .18s}
-.financial-assumptions[open] .financial-summary-action span{transform:rotate(180deg)}
 .financial-assumptions[open] .financial-disclosure-summary{border-bottom:1px solid #d9e9ea;border-radius:14px 14px 0 0}
 .financial-assumptions-heading,.financial-assumptions .financial-fields,.financial-assumptions .fin-source-review,.financial-assumptions .financial-status,.financial-assumptions .financial-actions,.financial-assumptions .financial-citation{margin-left:19px;margin-right:19px}
 .financial-assumptions-heading{margin-top:22px;align-items:flex-start}
@@ -800,3 +798,42 @@ button.action.primary:hover{background:#094e59}
 @media(max-width:1050px){.scenario-context-values{grid-template-columns:repeat(2,minmax(0,1fr))}.scenario-context-caption{flex:1 1 100%}.context-change-btn{margin-left:auto}}
 @media(max-width:700px){#decision .comparison-lead{padding:12px}.setup-progress{flex-wrap:wrap;padding:13px}.setup-progress-copy{flex:1 1 100%}.setup-progress-actions{width:100%}.setup-progress-actions button{flex:1}.scenario-context-bar{margin:12px 10px 16px;padding:12px}.scenario-context-values{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.context-change-btn{margin-left:0}.setup-actions{padding:15px}.view-results-button{width:100%}#decision-results{padding:15px 10px}.decision-calculators-heading{align-items:flex-start}}
 @media print{#decision-results{display:block!important}.setup-progress,.setup-actions,.context-change-btn,.edit-setup-btn{display:none!important}.scenario-context-bar{break-inside:avoid}}
+
+
+/* v3.2 — ONE coherent, always-visible comparison setup. Blue Lagoon. */
+.site-hero {grid-template-columns:minmax(0,1fr)!important;min-height:0!important;padding:23px 30px!important}
+.site-hero-brand {max-width:100%}
+#decision .comparison-lead {padding:27px 30px 26px;border-radius:18px;background:linear-gradient(180deg,#f5fbfc,#f0f9fa)}
+.unified-setup-heading {display:flex;align-items:center;justify-content:space-between;gap:22px;margin:0 0 23px;padding-bottom:18px;border-bottom:1px solid #cde5e9}
+.unified-setup-heading .eyebrow {display:block;font-size:10px;font-weight:850;color:#117a87;letter-spacing:.11em}
+.unified-setup-heading h1 {font-size:25px;line-height:1.22;letter-spacing:-.45px;color:#104b5e;margin:6px 0 6px}
+.unified-setup-heading p {font-size:13px;line-height:1.5;margin:0;color:#547683}
+.unified-setup-heading .quick-guide {flex:none;cursor:pointer;font-size:12px;font-weight:750;background:#e7f5f7;color:#0d6677;border:1px solid #a8d6dc;border-radius:9px;padding:9px 15px}
+.unified-setup-heading .quick-guide:hover {background:#d7eef1}
+#decision .financial-assumptions {display:block!important;background:transparent;border:0;box-shadow:none;margin:0;padding:0;border-radius:0}
+.setup-group-title {font-size:17px;font-weight:800;letter-spacing:-.2px;color:#115364;margin:0 0 12px}
+#decision .comparison-controls {display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,.9fr) minmax(0,.95fr);margin:0 0 22px;gap:12px;max-width:none}
+#decision .comparison-controls .field {background:#e8f6f8;border-color:#bedfe4;padding:12px 14px;min-width:0}
+#decision .comparison-controls .field select {width:100%;min-width:0}
+#decision .scenario-location {position:relative;min-width:0;max-width:none;width:auto;margin:0;order:unset;flex:none}
+#decision .scenario-location .scenario-location-short-hint {font-size:11px;font-weight:400;line-height:1.35;color:#567a88;margin-top:6px}
+#decision .scenario-location .location-hint {display:none;position:absolute;z-index:4;top:100%;left:0;right:auto;background:white;color:#315d6e;border:1px solid #aed4db;box-shadow:0 8px 25px rgba(12,66,85,.1);border-radius:10px;padding:12px;width:min(355px,85vw);max-width:unset}
+#decision .scenario-location:hover .location-hint,#decision .scenario-location:focus-within .location-hint {display:block}
+#decision .financial-assumptions-heading {margin:0 0 16px;border-top:1px solid #cee5e8;padding:21px 0 0;gap:22px;align-items:flex-start}
+#decision .financial-assumptions-heading h2 {font-size:18px;color:#115364;margin:0 0 6px}
+#decision .financial-assumptions-heading p {max-width:720px;font-size:12px;color:#577986;margin:0;line-height:1.55}
+#decision .financial-heading-controls {align-items:flex-start;justify-content:flex-end;flex-wrap:nowrap;gap:10px}
+#decision .financial-heading-controls .field {min-width:145px;max-width:190px}
+#decision .financial-heading-controls .field label {font-size:11px;font-weight:750;color:#315e70}
+#decision .financial-heading-controls .field select {width:100%;height:38px;background:#e6f7f7;color:#0c6073;border:1px solid #88c7cb;border-radius:9px;font-size:13px;padding:8px 10px;font-weight:750}
+#decision .report-currency-help {display:block;font-size:10px;font-weight:400;color:#68858d;margin-top:6px;line-height:1.4}
+#decision .financial-fields,#decision .fin-source-review,#decision .financial-status,#decision .financial-actions,#decision .financial-citation {margin-left:0;margin-right:0}
+#decision .financial-fields {margin-bottom:12px}
+#decision .financial-assumptions .financial-status {margin-top:14px}
+#decision .financial-assumptions .financial-actions {margin-top:14px}
+#decision .setup-actions {margin:21px 0 12px}
+#decision-results .scenario-context-bar {margin:0 0 20px;padding:14px 16px}
+#decision-results .context-change-btn {font-size:12px}
+@media(max-width:1050px){#decision .financial-assumptions-heading{flex-wrap:wrap}#decision .financial-heading-controls{width:100%;justify-content:flex-start}}
+@media(max-width:740px){#decision .comparison-lead{padding:18px 15px 20px}.unified-setup-heading{align-items:flex-start;flex-wrap:wrap;gap:12px}.unified-setup-heading h1{font-size:22px}.unified-setup-heading .quick-guide{margin-left:0}#decision .comparison-controls{grid-template-columns:1fr;gap:10px}#decision .financial-heading-controls{flex-wrap:wrap}#decision .financial-heading-controls .field{flex:1 1 135px;min-width:130px}#decision .scenario-location{order:unset;flex:none;max-width:none;margin:0}#decision-results .scenario-context-bar{margin:0 0 17px}#decision .financial-assumptions-heading{flex-direction:column;gap:11px}}
+@media print {#decision .financial-assumptions{display:block!important}#decision-results .scenario-context-bar{margin-top:0}}

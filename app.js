@@ -390,25 +390,14 @@ function revealComparison(){
  results.scrollIntoView({behavior:'smooth',block:'start'});
 }
 function returnToSetup(){
- const panel=el('financial-assumptions-panel');panel.open=true;
- const setup=el('decision-role');
- setup.scrollIntoView({behavior:'smooth',block:'center'});
-}
-
-function syncFinancialPanelState(){
- const panel=el('financial-assumptions-panel');
- const hint=panel?.querySelector('.financial-summary-hint');
- if(hint)hint.textContent=panel.open?'Collapse':'Expand to review & edit';
+ const setup=el('financial-assumptions-panel');
+ setup.scrollIntoView({behavior:'smooth',block:'start'});
 }
 el('view-comparison').addEventListener('click',revealComparison);
-el('edit-scenario-setup').addEventListener('click',returnToSetup);
-el('change-scenario-context').addEventListener('click',()=>el('decision-role').scrollIntoView({behavior:'smooth',block:'center'}));
-el('open-financial-assumptions').addEventListener('click',()=>{const panel=el('financial-assumptions-panel');panel.open=true;syncFinancialPanelState();panel.scrollIntoView({behavior:'smooth',block:'start'});});
-el('financial-assumptions-panel').addEventListener('toggle',syncFinancialPanelState);
+el('change-scenario-context').addEventListener('click',returnToSetup);
 for(const id of ['scenario-location','decision-role','decision-grade','currency']){
  el(id).addEventListener('change',updateScenarioSummary);
 }
-syncFinancialPanelState();
 for(const id of ['decision','market','guide']) el('tab-'+id).addEventListener('click',()=>showTab(id));
 
 document.querySelectorAll('[data-open-tab]').forEach(btn=>btn.addEventListener('click',()=>{

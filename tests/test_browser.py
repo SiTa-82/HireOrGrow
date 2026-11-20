@@ -55,7 +55,14 @@ def main():
    assert page.locator('#decision .compare-top').count()==0
    assert page.locator('#tab-guide').count()==1
    # Setup first: role, grade, location, currency and live Financial Assumptions precede the results.
-   assert page.locator('#financial-assumptions-panel').evaluate('(e) => e.open')
+   assert page.locator('#financial-assumptions-panel').evaluate("(e) => e.tagName === 'SECTION'")
+   assert page.locator('#financial-assumptions-panel #decision-role').count()==1
+   assert page.locator('#financial-assumptions-panel #decision-grade').count()==1
+   assert page.locator('#financial-assumptions-panel #scenario-location').count()==1
+   assert page.locator('#financial-assumptions-panel #currency').count()==1
+   assert page.locator('#financial-assumptions-panel #fin-market').count()==1
+   assert page.locator('.site-hero .scenario-location').count()==0
+   assert page.locator('.setup-progress, .financial-disclosure-summary, .financial-summary-hint').count()==0
    assert page.locator('#decision-chart').is_hidden()
    assert page.locator('.financial-assumptions').evaluate('(e) => e.compareDocumentPosition(document.querySelector("#decision-results")) & Node.DOCUMENT_POSITION_FOLLOWING')
    assert page.locator('#scenario-summary-role').inner_text()=='DevOps Engineer'
@@ -66,8 +73,8 @@ def main():
    page.locator('#view-comparison').click()
    assert page.locator('#decision-chart').is_visible()
    assert page.locator('#decision-chart .decision-chart-card').count()==3
-   page.locator('#edit-scenario-setup').click()
-   assert page.locator('#financial-assumptions-panel').evaluate('(e) => e.open')
+   page.locator('#change-scenario-context').click()
+   assert page.locator('#financial-assumptions-panel #fin-market').is_visible()
    # Do not silently assume a candidate exists: unassessed paths are excluded.
    assert page.locator('#fin-promotion-available').input_value()=='unknown'
    assert page.locator('#fin-reskill-available').input_value()=='unknown'

@@ -168,3 +168,13 @@ In the deliverable based on `HireOrGrow-main(1).zip` (v0.9.11), the Blue Lagoon 
 - The Financial Assumptions panel includes a live context bar with all four selected values. It mirrors the existing selectors rather than duplicating or converting their data.
 - From the results, **Edit scenario settings** returns to the settings controls; per-card **Edit Assumptions** continues to open its detailed model.
 - The Salary Benchmarks input form, evidence cards, tables and trend plots consistently use Blue Lagoon. No source or formula changes.
+
+
+### 2026-11-20 — v3.2: Unified comparison setup (replaces the disclosure experiment)
+
+- Put **all initial comparison inputs in one always-visible form**: Position, Level, Scenario Location; below them financial values, candidate feasibility, timing, Salary Input Period and an optional reporting Currency (USD default).
+- Remove the interim "Before you compare" banner, extra button, numbered step and collapsible Financial Assumptions widget entirely. Neither text nor icons should rotate; there is no open/close action in the setup form.
+- Move Scenario Location out of the masthead, which remains logo + one-line product description. The user sees the country alongside Position and Level, not in another part of the page.
+- The selection of reporting currency is **optional**: USD remains the default. Source salary FX may be available; manually entered cost values are NOT automatically converted. Never imply a NET salary becomes GROSS by switching currency or period.
+- Move the live four-field context summary to the **results view**, where it helps interpret a calculation. "Edit comparison" scrolls to the unified setup form; there is only one such button above the results, not a duplicate in the overview heading.
+- Flow stays setup first → Compare Scenarios → results. Business formulas, sources and market data remain untouched.
