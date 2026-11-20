@@ -725,14 +725,22 @@ button.action.primary:hover{background:#094e59}
 /* v0.9.11 UX refinement — setup first, coherent context, salary benchmarks palette */
 [hidden]{display:none!important}
 #decision .comparison-lead{padding:23px 26px 28px}
-.setup-progress{display:flex;align-items:center;gap:13px;background:linear-gradient(100deg,#e0f2f5,#f3fafb);border:1px solid #c4e1e5;border-radius:13px;padding:14px 18px;margin:8px 0 16px;color:#154b5d}
-.setup-step-number{display:grid;place-items:center;border-radius:10px;background:#0c6e7e;color:#fff;font-size:13px;font-weight:800;width:39px;height:39px;flex:none}
-.setup-progress>div{flex:1;min-width:0}.setup-progress strong,.setup-actions strong{display:block;font-size:15px;color:#124e60}
+.setup-progress{display:flex;align-items:center;justify-content:space-between;gap:16px;background:linear-gradient(100deg,#e0f2f5,#f3fafb);border:1px solid #c4e1e5;border-radius:13px;padding:14px 18px;margin:8px 0 16px;color:#154b5d}
+.setup-progress-copy{flex:1;min-width:0}.setup-progress strong,.setup-actions strong{display:block;font-size:15px;color:#124e60}
 .setup-progress small,.setup-actions small{display:block;font-size:12px;color:#577987;line-height:1.5;margin-top:3px}
-.setup-progress .quick-guide{border:1px solid #a7d3d8;border-radius:9px;background:#f8fefe;color:#116b78;font-size:12px;font-weight:700;padding:9px 13px;cursor:pointer}
+.setup-progress-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.setup-progress .quick-guide,.setup-progress .quick-edit{border:1px solid #a7d3d8;border-radius:9px;background:#f8fefe;color:#116b78;font-size:12px;font-weight:700;padding:9px 13px;cursor:pointer}
+.setup-progress .quick-edit{background:#0d7281;border-color:#0d7281;color:#fff;box-shadow:0 5px 14px rgba(11,114,129,.16)}
+.setup-progress .quick-edit:hover{background:#095966;border-color:#095966}
 #decision .financial-assumptions{margin-top:0;margin-bottom:14px;background:linear-gradient(180deg,#ecf8fa,#fbfefe);border:1px solid #b7dce1;box-shadow:0 7px 22px rgba(12,66,85,.06)}
-.financial-disclosure-summary{background:linear-gradient(90deg,#dff2f4,#eef9fa);border-bottom:1px solid #c8e4e8}
+.financial-disclosure-summary{background:linear-gradient(90deg,#dff2f4,#eef9fa);border-bottom:1px solid #c8e4e8;align-items:center}
+.financial-summary-icon{font-size:18px;line-height:1}
+.financial-summary-action{display:inline-flex;align-items:center;gap:8px;margin-left:auto;color:#0c7883;font-weight:800;font-size:12px;white-space:nowrap}
+.financial-summary-hint{display:inline-block}
+.financial-summary-chevron{display:inline-block;font-size:14px;transition:transform .15s ease}
+.financial-assumptions[open] .financial-summary-chevron{transform:rotate(180deg)}
 .financial-assumptions[open] .financial-disclosure-summary{border-radius:14px 14px 0 0}
+.financial-assumptions .financial-disclosure-summary:hover{background:linear-gradient(90deg,#d7edf1,#eaf7f9)}
 .scenario-context-bar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:17px 18px 20px;padding:14px 15px;background:#e1f3f6;border:1px solid #b7dbe2;border-left:4px solid #14849b;border-radius:12px}
 .scenario-context-caption{flex:0 1 155px}.scenario-context-caption strong{display:block;font-size:14px;color:#0c5265}.scenario-context-caption small{display:block;font-size:11px;color:#567987;line-height:1.4;margin-top:3px}
 .scenario-context-values{display:grid;grid-template-columns:minmax(125px,1.5fr) minmax(105px,1fr) minmax(100px,1fr) minmax(65px,.6fr);gap:11px;margin:0;flex:1 1 540px}
@@ -790,5 +798,5 @@ button.action.primary:hover{background:#094e59}
 #market .rate-trend-empty{background:#e6f4f6;color:#577d8d}
 #market a{color:#0d7084}
 @media(max-width:1050px){.scenario-context-values{grid-template-columns:repeat(2,minmax(0,1fr))}.scenario-context-caption{flex:1 1 100%}.context-change-btn{margin-left:auto}}
-@media(max-width:700px){#decision .comparison-lead{padding:12px}.setup-progress{flex-wrap:wrap;padding:13px}.setup-progress>div{flex:1 1 calc(100% - 65px)}.setup-progress .quick-guide{margin-left:auto}.scenario-context-bar{margin:12px 10px 16px;padding:12px}.scenario-context-values{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.context-change-btn{margin-left:0}.setup-actions{padding:15px}.view-results-button{width:100%}#decision-results{padding:15px 10px}.decision-calculators-heading{align-items:flex-start}}
+@media(max-width:700px){#decision .comparison-lead{padding:12px}.setup-progress{flex-wrap:wrap;padding:13px}.setup-progress-copy{flex:1 1 100%}.setup-progress-actions{width:100%}.setup-progress-actions button{flex:1}.scenario-context-bar{margin:12px 10px 16px;padding:12px}.scenario-context-values{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.context-change-btn{margin-left:0}.setup-actions{padding:15px}.view-results-button{width:100%}#decision-results{padding:15px 10px}.decision-calculators-heading{align-items:flex-start}}
 @media print{#decision-results{display:block!important}.setup-progress,.setup-actions,.context-change-btn,.edit-setup-btn{display:none!important}.scenario-context-bar{break-inside:avoid}}
