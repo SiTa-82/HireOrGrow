@@ -54,12 +54,19 @@ def main():
    assert page.locator('header.site-hero').evaluate('(el) => !!(el.compareDocumentPosition(document.querySelector(".product-nav")) & Node.DOCUMENT_POSITION_FOLLOWING)')
    assert page.locator('#decision .compare-top').count()==0
    assert page.locator('#tab-guide').count()==1
-   assert page.locator('#financial-assumptions-panel').evaluate('(e) => !e.open')
+   # Setup first: role, grade, location, currency and live Financial Assumptions precede the results.
+   assert page.locator('#financial-assumptions-panel').evaluate('(e) => e.open')
+   assert page.locator('#decision-chart').is_hidden()
+   assert page.locator('.financial-assumptions').evaluate('(e) => e.compareDocumentPosition(document.querySelector("#decision-results")) & Node.DOCUMENT_POSITION_FOLLOWING')
+   assert page.locator('#scenario-summary-role').inner_text()=='DevOps Engineer'
+   assert page.locator('#scenario-summary-grade').inner_text()=='Mid-level · 3–5 years'
+   assert page.locator('#scenario-summary-location').inner_text()=='Armenia'
+   assert page.locator('#scenario-summary-currency').inner_text()=='USD'
+   page.screenshot(path=str(ROOT/'UX_Setup_First.png'),full_page=False)
+   page.locator('#view-comparison').click()
    assert page.locator('#decision-chart').is_visible()
    assert page.locator('#decision-chart .decision-chart-card').count()==3
-   # In the decision-first layout financial controls are intentionally below charts and collapsed.
-   assert page.locator('.decision-calculators-section').evaluate('(e) => e.compareDocumentPosition(document.querySelector(".financial-assumptions")) & Node.DOCUMENT_POSITION_FOLLOWING')
-   page.locator('#open-financial-assumptions').click()
+   page.locator('#edit-scenario-setup').click()
    assert page.locator('#financial-assumptions-panel').evaluate('(e) => e.open')
    # Do not silently assume a candidate exists: unassessed paths are excluded.
    assert page.locator('#fin-promotion-available').input_value()=='unknown'
@@ -80,8 +87,8 @@ def main():
    assert page.locator('.chart-disclaimer').count()==1
    assert page.locator('.decision-calculators-section > .chart-disclaimer').count()==1
    assert page.locator('.financial-assumptions .chart-disclaimer').count()==0
-   assert page.locator('.chart-disclaimer').evaluate('(e) => !!(e.compareDocumentPosition(document.querySelector(".financial-assumptions")) & Node.DOCUMENT_POSITION_FOLLOWING)')
-   assert page.locator('.comparison-lead .chart-disclaimer').evaluate('(e) => e.compareDocumentPosition(document.querySelector("#decision-chart")) & Node.DOCUMENT_POSITION_PRECEDING')
+   assert page.locator('.financial-assumptions').evaluate('(e) => !!(e.compareDocumentPosition(document.querySelector(".chart-disclaimer")) & Node.DOCUMENT_POSITION_FOLLOWING)')
+   assert page.locator('#decision-results .chart-disclaimer').count()==1
    assert 'Sets the country for salary evidence' in page.locator('.location-hint').text_content()
    assert page.locator('#decision-role option').count()==43
    assert page.locator('#decision-role optgroup').count()==0
@@ -118,6 +125,7 @@ def main():
    }""")
    assert page.locator('#fin-market').input_value()=='3300'
    page.locator('#currency').select_option('RUB')
+   assert page.locator('#scenario-summary-currency').inner_text()=='RUB'
    assert page.locator('#fin-market').input_value()==''  # FX unavailable in test fixture
    assert 'FX unavailable' in page.locator('#fin-market-source').inner_text()
    page.locator('#currency').select_option('USD')
@@ -204,7 +212,7 @@ def main():
    for selector in ['.decision-chart-head','.decision-chart-bars','.decision-chart-summary','.decision-chart-note','.decision-chart-edit']:
     tops=[round(e['y'],1) for e in page.locator('#decision-chart .decision-chart-card '+selector).evaluate_all('(es)=>es.map(e=>e.getBoundingClientRect().toJSON())')]
     assert max(tops)-min(tops)<2,(selector,tops)
-   assert page.locator('.decision-chart-edit').first.evaluate('(e)=>getComputedStyle(e).backgroundColor')!='rgba(0, 0, 0, 0)'
+   assert page.locator('.decision-chart-edit').first.evaluate('(e)=>getComputedStyle(e).backgroundImage')!='none'
 
    page.locator('.financial-assumptions').screenshot(path=str(ROOT/'v097_period_switch.png'), animations='disabled')
    page.locator('#decision-chart').screenshot(path=str(ROOT/'v095_charts.png'), animations='disabled')
@@ -219,6 +227,7 @@ def main():
    page.locator('#fin-period').select_option('annual')
    # Readily available exact same-grade GROSS midpoint from Netherlands, with mocked FX.
    page.locator('#scenario-location').select_option('netherlands')
+   assert page.locator('#scenario-summary-location').inner_text()=='Netherlands'
    page.wait_for_function("document.querySelector('#fin-market').value !== ''",timeout=15000)
    market_annual=float(page.locator('#fin-market').input_value())
    assert market_annual>50000,market_annual
@@ -255,6 +264,7 @@ def main():
      refreshFinancialBenchmark({reset:true});
    }""")
    page.locator('#decision-role').select_option('bioinformatics-engineer')
+   assert page.locator('#scenario-summary-role').inner_text()=='Bioinformatics Engineer'
    assert page.locator('#m-role').input_value()=='bioinformatics-engineer'
    assert page.locator('#r-role').input_value()=='Bioinformatics Engineer'
    assert page.locator('#role').input_value()=='Bioinformatics Engineer'
@@ -263,6 +273,7 @@ def main():
    assert page.locator('#tab-market').get_attribute('aria-selected')=='true'
    assert 'active' in page.locator('#tab-market').get_attribute('class')
    assert page.locator('#market').is_visible()
+   page.screenshot(path=str(ROOT/'UX_Salary_Benchmarks.png'),full_page=False)
    assert page.locator('#decision').is_hidden()
    page.wait_for_function("document.querySelector('#m-fetchstatus').textContent.includes('Public source snapshots:')",timeout=15000)
    assert page.locator('#rate-trends').count()==1

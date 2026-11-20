@@ -649,3 +649,146 @@ button.action.primary:hover{background:#084a5b}
   .site-hero .scenario-location {order:0;flex:none;max-width:none;margin:0}
 }
 @media print {.site-hero {display:none!important}}
+
+
+/* v0.9.11 Blue Lagoon refinement — apply palette below the header and simplify edit buttons */
+body{background:linear-gradient(180deg,#e8f5f7 0,#f2fbfb 360px,#eff9fa 100%)}
+.security-disclosure{border-color:#c7e2e6;background:linear-gradient(180deg,#eff8fa 0%,#fbfefe 100%)}
+.security-disclosure>summary{background:linear-gradient(180deg,#eef8fa 0%,#f7fcfd 100%);border-radius:11px}
+.security-disclosure .security-icon{background:#d7eef3;color:#0e7286}
+.security-disclosure strong{color:#164e61}
+.security-disclosure .security-copy{background:#f4fbfc;color:#4a6e7b}
+.product-nav{background:linear-gradient(180deg,#deeff2 0%,#eaf5f7 100%);border-color:#c7e2e6;box-shadow:0 6px 18px rgba(12,66,85,.04)}
+.product-nav .top-nav-tab:hover,.product-nav .top-nav-tab.top-nav-decision:hover,.product-nav .top-nav-tab.top-nav-benchmarks:hover,.product-nav .top-nav-tab.top-nav-guide:hover{background:#f4fbfc;border-color:#bddde2}
+.product-nav .top-nav-tab.active,.product-nav .top-nav-tab.top-nav-decision.active,.product-nav .top-nav-tab.top-nav-benchmarks.active,.product-nav .top-nav-tab.top-nav-guide.active{border-color:#95cfd2;background:linear-gradient(180deg,#fcffff 0%,#f3fbfb 100%);box-shadow:0 8px 18px rgba(12,66,85,.09)}
+.product-nav .top-nav-symbol,.product-nav .top-nav-decision .top-nav-symbol,.product-nav .top-nav-benchmarks .top-nav-symbol,.product-nav .top-nav-guide .top-nav-symbol{background:#ddf2f3;border-color:#c2e3e6;color:#0e7483}
+.product-nav .top-nav-tab.active .top-nav-symbol{background:linear-gradient(180deg,#d1f0ed 0%,#e4f7f4 100%);border-color:#9fd8d3;color:#0d6f67}
+#decision .comparison-lead{background:linear-gradient(180deg,#f7fcfc 0%,#f1fafb 100%);border-color:#c8e2e6;box-shadow:0 14px 34px rgba(12,66,85,.06)}
+.comparison-controls .field{background:linear-gradient(180deg,#edf8fa 0%,#f8fcfc 100%);border-color:#cfe4e7}
+.overview-action-strip{border-bottom-color:#d7e8eb}
+.overview-action-copy{color:#165867}
+.overview-action-buttons .quick-edit,.guide-action{background:#0b7281;border-color:#0b7281;box-shadow:0 5px 14px rgba(11,114,129,.18)}
+.overview-action-buttons .quick-edit:hover,.guide-action:hover{background:#095a67;border-color:#095a67}
+.overview-action-buttons .quick-guide{background:#eaf7f8;border-color:#beddde;color:#126c79}
+.overview-action-buttons .quick-guide:hover{background:#def1f3}
+.financial-assumptions{background:linear-gradient(180deg,#f0fafb 0%,#fbffff 100%);border-color:#c7e3e6;box-shadow:0 8px 22px rgba(12,66,85,.04)}
+.financial-disclosure-summary{background:linear-gradient(180deg,#e9f7f8 0%,#f8fcfd 100%)}
+.financial-summary-icon{background:linear-gradient(180deg,#d7eef3 0%,#e6f7f8 100%);border:1px solid #b9dfe3;color:#0d7d87}
+.financial-assumptions-heading h2{color:#134b5e}
+.financial-assumptions-heading p,.financial-fields small,.financial-citation,.financial-actions span,.financial-status,.fin-source-review,.fin-manual-help{color:#54727f}
+.financial-fields .field{background:#fcffff;border:1px solid #d5e8eb;border-radius:12px;padding:12px}
+.financial-fields .field label{color:#4e7282}
+.financial-fields .field input,.financial-fields .field select{background:#fff;border-color:#c3dee2}
+.financial-status{background:#e6f5f8;border-left-color:#15839a}
+.fin-source-review{background:#eef8fa;border-color:#d3e7eb}
+.fin-manual-help{background:#eaf7fa;border-left-color:#1a8aa0}
+.fin-edit-manual{background:#f0fbfc;border-color:#7ebec7}
+.decision-calculators-heading h2,.calc-separator h2{color:#114757}
+.decision-calculators-heading p,.calc-separator p{color:#6d8892}
+.decision-calculators-section .chart-disclaimer{background:#edf8fa;border-color:#d4e8eb;border-left-color:#46a2af;color:#4b6f7b}
+.decision-chart-card{background:linear-gradient(180deg,#fcffff 0%,#f4fbfb 100%);border-color:#cfe3e7;box-shadow:0 8px 20px rgba(12,66,85,.06)}
+.decision-chart-head{border-bottom-color:#dbeaec}
+.decision-chart-head h3{color:#10485b}
+.decision-chart-head p{color:#5f7f8d}
+.decision-period-pill{background:#dff2f6;border-color:#b8e0e6;color:#0f6d80}
+.decision-bar-track{background:#dfebef}
+.decision-bar-fill{background:#87a8b3}
+.decision-chart-summary{background:linear-gradient(180deg,#dff5ee 0%,#ebfaf6 100%);border-color:#c9ece3}
+.decision-chart-summary b{color:#0d6a5d}
+.decision-chart-summary small{color:#527b73}
+.decision-chart-note{color:#5c7885}
+.decision-chart-edit{display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;background:linear-gradient(180deg,#eff8fa 0%,#e2f4f5 100%);border-color:#93cfd4;color:#126d7a}
+.decision-chart-edit:hover{background:linear-gradient(180deg,#e0f2f3 0%,#d2ecee 100%);border-color:#5eb7b6;color:#0c5f69}
+.decision-edit-icon{font-size:13px;line-height:1}
+.decision-edit-arrow{display:none!important}
+.calc-detail{border-color:#d4e7ea;background:#fbfefe}
+.calc-detail>summary{background:linear-gradient(180deg,#f8fcfd 0%,#f1f9fa 100%)}
+.calc-detail[open]>summary{background:#ebf7f9;border-bottom-color:#d5e7ea}
+.calc-detail section{background:#fcffff}
+.resultmain{background:linear-gradient(180deg,#e5f5f7 0%,#eef9fa 100%)}
+.metric{background:#eef7f8}
+.explain{background:#edf8f6}
+button.action{border-color:#b9dce0;color:#134f61}
+button.action.primary{background:#0c6978;border-color:#0c6978}
+button.action.primary:hover{background:#094e59}
+.pill{background:#e8f5f6;color:#4c7480}
+.marketmessage,.sourcebox,.benchmark,.rate-trend-card,.benchmark-card,.market-card-grid .market-card,.guide-block{background:linear-gradient(180deg,#fbffff 0%,#f4fbfb 100%)}
+.marketmessage{border:1px solid #d5e8eb}
+.benchmark,.rate-trend-card,.sourcebox,.guide-block{border-color:#d3e6e9}
+.market-summary{background:#e2f5ef;border-left-color:#169e8e}
+.rate-trends{background:linear-gradient(180deg,#edf9fa 0%,#fbffff 100%);border-color:#d1e7e9}
+.guide-index a{background:#f3fafb;border-color:#cce4e7}
+.guide-index a:hover{background:#e3f3f5}
+.footer{border-top-color:#d3e6e9;color:#708a94}
+
+
+/* v0.9.11 UX refinement — setup first, coherent context, salary benchmarks palette */
+[hidden]{display:none!important}
+#decision .comparison-lead{padding:23px 26px 28px}
+.setup-progress{display:flex;align-items:center;gap:13px;background:linear-gradient(100deg,#e0f2f5,#f3fafb);border:1px solid #c4e1e5;border-radius:13px;padding:14px 18px;margin:8px 0 16px;color:#154b5d}
+.setup-step-number{display:grid;place-items:center;border-radius:10px;background:#0c6e7e;color:#fff;font-size:13px;font-weight:800;width:39px;height:39px;flex:none}
+.setup-progress>div{flex:1;min-width:0}.setup-progress strong,.setup-actions strong{display:block;font-size:15px;color:#124e60}
+.setup-progress small,.setup-actions small{display:block;font-size:12px;color:#577987;line-height:1.5;margin-top:3px}
+.setup-progress .quick-guide{border:1px solid #a7d3d8;border-radius:9px;background:#f8fefe;color:#116b78;font-size:12px;font-weight:700;padding:9px 13px;cursor:pointer}
+#decision .financial-assumptions{margin-top:0;margin-bottom:14px;background:linear-gradient(180deg,#ecf8fa,#fbfefe);border:1px solid #b7dce1;box-shadow:0 7px 22px rgba(12,66,85,.06)}
+.financial-disclosure-summary{background:linear-gradient(90deg,#dff2f4,#eef9fa);border-bottom:1px solid #c8e4e8}
+.financial-assumptions[open] .financial-disclosure-summary{border-radius:14px 14px 0 0}
+.scenario-context-bar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:17px 18px 20px;padding:14px 15px;background:#e1f3f6;border:1px solid #b7dbe2;border-left:4px solid #14849b;border-radius:12px}
+.scenario-context-caption{flex:0 1 155px}.scenario-context-caption strong{display:block;font-size:14px;color:#0c5265}.scenario-context-caption small{display:block;font-size:11px;color:#567987;line-height:1.4;margin-top:3px}
+.scenario-context-values{display:grid;grid-template-columns:minmax(125px,1.5fr) minmax(105px,1fr) minmax(100px,1fr) minmax(65px,.6fr);gap:11px;margin:0;flex:1 1 540px}
+.scenario-context-values div{min-width:0}.scenario-context-values dt{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#5e8290}.scenario-context-values dd{font-size:13px;font-weight:800;line-height:1.35;color:#104a60;margin:4px 0 0;overflow-wrap:anywhere}
+.context-change-btn{border:1px solid #90cbd0;color:#116a79;background:#f5fefe;padding:9px 11px;border-radius:9px;font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap}
+.context-change-btn:hover,.setup-progress .quick-guide:hover{background:#d5edef}
+.setup-actions{display:flex;align-items:center;justify-content:space-between;gap:15px;flex-wrap:wrap;padding:16px 18px;border-radius:14px;background:linear-gradient(100deg,#dff3f0,#ecf9f9);border:1px solid #b7dfdc;margin:14px 0 15px}
+.setup-actions>div{flex:1;min-width:230px}
+.view-results-button{border:1px solid #0c7889;background:linear-gradient(100deg,#0a6b7e,#15958e);color:#fff;border-radius:10px;padding:12px 24px;font-size:14px;font-weight:850;cursor:pointer;box-shadow:0 6px 16px rgba(9,100,116,.18)}
+.view-results-button:hover{background:linear-gradient(100deg,#095568,#0c8279)}
+#decision-results{scroll-margin-top:24px;background:#f2fafb;padding:19px 16px 16px;border:1px solid #c8e5e7;border-radius:16px;margin:16px 0}
+.decision-calculators-heading{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin-bottom:15px}
+.decision-calculators-heading h2{margin-right:auto}
+.decision-calculators-heading p{flex:1 1 100%}
+.edit-setup-btn{font-size:12px;font-weight:750;border:1px solid #8fcad0;background:#e3f4f6;color:#0d6978;padding:9px 12px;border-radius:9px;cursor:pointer}
+.edit-setup-btn:hover{background:#d2ecee}
+#decision .decision-chart-card{background:linear-gradient(180deg,#ffffff,#eff9fa)}
+/* Salary Benchmarks: all filters and output components use Blue Lagoon, with distinct secondary neutrals for legibility. */
+#market .card{background:linear-gradient(180deg,#f7fcfd 0%,#edf8fa 100%);border:1px solid #c2e0e4;box-shadow:0 10px 27px rgba(12,66,85,.065)}
+#market .marketsettings{background:linear-gradient(180deg,#ebf7f9 0%,#f6fcfd 100%)}
+#market h1,#market h2,#market h3{color:#104d62}
+#market .field label{color:#326579;font-weight:750}
+#market .field input,#market .field select{background:#fcffff;border-color:#a9d2d9;color:#164c61}
+#market .subcard,#market .market-choice,#market .manual-rate-details,#market .market-country-picker{background:#eef8fa;border:1px solid #c4e1e5;border-radius:12px}
+#market .market-country-picker>summary,#market .manual-rate-details>summary{color:#145f70;font-weight:750;cursor:pointer}
+#market .preset-row .preset{background:#f4fcfd;border:1px solid #a9d4da;color:#145c70}
+#market .preset-row .preset:hover{background:#dff1f3}
+#market .preset-row .preset.active,#market .preset-row .preset[aria-pressed="true"]{background:#cdece9;border-color:#55aaa9;color:#096c64}
+#market .loccheck{background:#f6fcfd;border-color:#c3dfe4;color:#1a5265}
+#market .loccheck:has(input:checked){background:#dff3f2;border-color:#83c5c5}
+#market .loccheck input{accent-color:#108b84}
+#market .actions button.action{border-color:#a0ced3;color:#135769;background:#e7f6f8}
+#market .actions button.action:hover{background:#d5edf1}
+#market .actions button.action.primary{background:#0d7080;color:white}
+#market .marketheader{padding-bottom:15px;border-bottom:1px solid #cce4e8}
+#market .marketheader h2{color:#0c5266}
+#market .metric{background:#ddf1f4;border:1px solid #c2e2e5}
+#market .metric label{color:#4e7786}
+#market .metric strong{color:#12516a}
+#market .market-summary{background:#dff5ef;border-left-color:#109e8b;color:#275e60}
+#market .benchmark,#market .market-card,#market .rate-trend-card,#market .sourcebox,#market .auto-vacancy,#market .remote-entry{background:linear-gradient(180deg,#faffff,#edf8fa);border-color:#c6e2e6}
+#market .benchmark-top,#market .salary,#market .remote-pay,#market .auto-vacancy-pay{color:#0b6b80}
+#market .flag.api{background:#d9eff4;color:#145f7a}
+#market .flag:not(.uncertain):not(.api){background:#dcf4eb;color:#0d7062}
+#market .marketmessage,#market .status,#market .marketnote,#market .subtext,#market .src{color:#4d7280}
+#market .marketmessage{background:#e6f5f7;border:1px solid #d0e7eb}
+#market .smalltags span,#market .pill{background:#dbf0f3;color:#2b7180}
+#market .table-scroll{border-color:#bddde3;background:#f7fcfd}
+#market table thead,#market .market-comparison thead{background:#dff0f3;color:#0e596e}
+#market table th,#market table td{border-color:#cfe5e9}
+#market table tbody tr:nth-child(even){background:#f0f8fa}
+#market .rate-trends{background:linear-gradient(180deg,#eaf8fa,#f8fcfd);border-color:#c6e2e6}
+#market .rate-trend-card svg{background:#e6f4f6}
+#market .rate-trend-amount{color:#0f728a}
+#market .rate-trend-empty{background:#e6f4f6;color:#577d8d}
+#market a{color:#0d7084}
+@media(max-width:1050px){.scenario-context-values{grid-template-columns:repeat(2,minmax(0,1fr))}.scenario-context-caption{flex:1 1 100%}.context-change-btn{margin-left:auto}}
+@media(max-width:700px){#decision .comparison-lead{padding:12px}.setup-progress{flex-wrap:wrap;padding:13px}.setup-progress>div{flex:1 1 calc(100% - 65px)}.setup-progress .quick-guide{margin-left:auto}.scenario-context-bar{margin:12px 10px 16px;padding:12px}.scenario-context-values{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.context-change-btn{margin-left:0}.setup-actions{padding:15px}.view-results-button{width:100%}#decision-results{padding:15px 10px}.decision-calculators-heading{align-items:flex-start}}
+@media print{#decision-results{display:block!important}.setup-progress,.setup-actions,.context-change-btn,.edit-setup-btn{display:none!important}.scenario-context-bar{break-inside:avoid}}

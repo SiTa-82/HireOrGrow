@@ -160,3 +160,11 @@ In the deliverable based on `HireOrGrow-main(1).zip` (v0.9.11), the Blue Lagoon 
 - Remove the repeated tagline, eyebrow, large headline, long marketing paragraph, and version badge.
 - Keep the Scenario Location control functional; the full explanation of its effects remains outside the promotional copy.
 - Keep all calculators, salary data handling, and Methodology & Guide unchanged.
+
+
+## UX decision (2026-11-20): Setup first, then comparison
+- Workflow: select Position, Level, Scenario Location, Currency; review Financial Assumptions; press **Compare Scenarios**; then review independent result cards.
+- Do not expose prefilled result cards before the user has reviewed the assumptions. Calculator math still runs as before and updates a revealed result live.
+- The Financial Assumptions panel includes a live context bar with all four selected values. It mirrors the existing selectors rather than duplicating or converting their data.
+- From the results, **Edit scenario settings** returns to the settings controls; per-card **Edit Assumptions** continues to open its detailed model.
+- The Salary Benchmarks input form, evidence cards, tables and trend plots consistently use Blue Lagoon. No source or formula changes.

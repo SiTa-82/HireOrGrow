@@ -34,9 +34,11 @@ def main():
         assert 'Only Assessed Feasible Option' in page.locator('#decision-chart').text_content()
         assert 'Candidate not assessed' in page.locator('#t-breakdown').text_content()
         assert 'Not included in cost ranking' in page.locator('#decision-chart').text_content()
-        # Financial inputs are under an intentionally collapsed decision-first disclosure.
-        page.locator('#open-financial-assumptions').click()
+        # Setup-first UI: inputs open immediately, comparison appears after the user requests it.
         assert page.locator('#financial-assumptions-panel').evaluate('(e)=>e.open')
+        assert page.locator('#decision-results').is_hidden()
+        page.locator('#view-comparison').click()
+        assert page.locator('#decision-results').is_visible()
         page.locator('#fin-promotion-available').select_option('no')
         page.locator('#fin-reskill-available').select_option('no')
         assert 'No suitable candidate' in page.locator('#t-breakdown').text_content()

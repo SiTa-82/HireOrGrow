@@ -386,7 +386,7 @@ function setMarketPreset(type){
 for(const b of document.querySelectorAll('[data-preset]'))b.addEventListener('click',()=>setMarketPreset(b.dataset.preset));
 for(const c of document.querySelectorAll('.m-country'))c.addEventListener('change',()=>{document.querySelectorAll('[data-preset]').forEach(b=>{b.classList.remove('active');b.setAttribute('aria-pressed','false')});renderMarket()});
 for(const id of ['m-role','m-grade','m-reportcur','m-burden','m-historical','m-home','m-history-cur','m-rate-basis','m-rate-type'])el(id).addEventListener('input',()=>{
- if(id==='m-grade'){el('decision-grade').value=el('m-grade').value;if(typeof refreshFinancialBenchmark==='function')refreshFinancialBenchmark()}
+ if(id==='m-grade'){el('decision-grade').value=el('m-grade').value;if(typeof refreshFinancialBenchmark==='function')refreshFinancialBenchmark();if(typeof updateScenarioSummary==='function')updateScenarioSummary()}
  renderMarket();
 });
 el('m-refresh').addEventListener('click',loadMarkets);

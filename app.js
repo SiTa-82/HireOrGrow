@@ -72,7 +72,7 @@ function renderDecisionOverview(){
     <div class="decision-chart-bars">${bars}</div>
     <div class="decision-chart-summary"><b>${safe(summary)}</b><small>${safe(next)}</small></div>
     <p class="decision-chart-note">${safe(group.note)}</p>
-    <button class="decision-chart-edit" data-edit="${safe(key)}" type="button" aria-label="Edit Assumptions for ${safe(group.title)}"><span class="decision-edit-icon" aria-hidden="true">✎</span><span>Edit Assumptions</span><span class="decision-edit-arrow" aria-hidden="true">↗</span></button>
+    <button class="decision-chart-edit" data-edit="${safe(key)}" type="button" aria-label="Edit Assumptions for ${safe(group.title)}"><span class="decision-edit-icon" aria-hidden="true">✎</span><span>Edit Assumptions</span></button>
    </article>`;
  }).join('');
  root.querySelectorAll('[data-edit]').forEach(btn=>btn.addEventListener('click',()=>{
@@ -86,6 +86,7 @@ function syncDecisionRole(source){
  el('decision-role').value=roleId;
  el('m-role').value=roleId;
  ['role','r-role','t-role'].forEach(id=>{el(id).value=roleText;});
+ if(typeof updateScenarioSummary==='function')updateScenarioSummary();
  calculateHire();calculateReplace();calculateTalent();
  if(typeof renderMarket==='function')renderMarket();
 }
@@ -194,7 +195,7 @@ function renderFinancialEvidence(e,converted){
  }
  const currentUnit=el('fin-period').value==='monthly'?'Month':'Year';
  const manualHelp=`<div class="fin-manual-help"><strong>Need a different figure?</strong> Edit <strong>Market Salary Rate / ${currentUnit}</strong> above. The manual value will replace this source for the selected scenario; its pay basis is not automatically assumed to be GROSS.</div>`;
- parent.innerHTML=`<div class="fin-evidence-top">${badge}<strong>Salary Evidence for This Scenario</strong></div>${description}${source}${fxInfo?`<p class="fin-evidence-fx">${fxInfo}</p>`:''}${manualHelp}<button type="button" class="fin-edit-manual" id="fin-edit-manual">${finManual.market?'Edit My Manual Rate':'Enter a More Accurate Rate Manually'} ↗</button>`;
+ parent.innerHTML=`<div class="fin-evidence-top">${badge}<strong>Salary Evidence for This Scenario</strong></div>${description}${source}${fxInfo?`<p class="fin-evidence-fx">${fxInfo}</p>`:''}${manualHelp}<button type="button" class="fin-edit-manual" id="fin-edit-manual">${finManual.market?'Edit My Manual Rate':'Enter a More Accurate Rate Manually'}</button>`;
  el('fin-edit-manual')?.addEventListener('click',()=>{const input=el('fin-market');input?.focus();input?.select();});
 }
 function refreshFinancialBenchmark(opts={}){
@@ -375,11 +376,32 @@ function showTab(tab){
   btn.setAttribute('aria-selected',String(active));
  }
 }
-for(const id of ['decision','market','guide']) el('tab-'+id).addEventListener('click',()=>showTab(id));
-el('open-financial-assumptions').addEventListener('click',()=>{
+// Setup-first UX: all labels in Financial Assumptions reflect the same live selectors.
+function updateScenarioSummary(){
+ const chosen=(id)=>el(id)?.selectedOptions?.[0]?.textContent.trim()||'Not selected';
+ set('scenario-summary-role',chosen('decision-role'));
+ set('scenario-summary-grade',chosen('decision-grade'));
+ set('scenario-summary-location',chosen('scenario-location'));
+ set('scenario-summary-currency',el('currency')?.value||'—');
+}
+function revealComparison(){
+ const results=el('decision-results');
+ results.hidden=false;
+ results.scrollIntoView({behavior:'smooth',block:'start'});
+}
+function returnToSetup(){
  const panel=el('financial-assumptions-panel');panel.open=true;
- panel.scrollIntoView({behavior:'smooth',block:'start'});
-});
+ const setup=el('decision-role');
+ setup.scrollIntoView({behavior:'smooth',block:'center'});
+}
+el('view-comparison').addEventListener('click',revealComparison);
+el('edit-scenario-setup').addEventListener('click',returnToSetup);
+el('change-scenario-context').addEventListener('click',()=>el('decision-role').scrollIntoView({behavior:'smooth',block:'center'}));
+for(const id of ['scenario-location','decision-role','decision-grade','currency']){
+ el(id).addEventListener('change',updateScenarioSummary);
+}
+for(const id of ['decision','market','guide']) el('tab-'+id).addEventListener('click',()=>showTab(id));
+
 document.querySelectorAll('[data-open-tab]').forEach(btn=>btn.addEventListener('click',()=>{
  const tab=btn.dataset.openTab;
  // Activate the real tab button so Salary Benchmarks also performs its normal lazy loading.
@@ -435,4 +457,5 @@ updateScenarioLocation();
 set('r-currency',currency());
 syncDecisionRole(el('decision-role'));
 refreshFinancialBenchmark();
+updateScenarioSummary();
 showTab('decision');
