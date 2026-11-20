@@ -837,3 +837,31 @@ button.action.primary:hover{background:#094e59}
 @media(max-width:1050px){#decision .financial-assumptions-heading{flex-wrap:wrap}#decision .financial-heading-controls{width:100%;justify-content:flex-start}}
 @media(max-width:740px){#decision .comparison-lead{padding:18px 15px 20px}.unified-setup-heading{align-items:flex-start;flex-wrap:wrap;gap:12px}.unified-setup-heading h1{font-size:22px}.unified-setup-heading .quick-guide{margin-left:0}#decision .comparison-controls{grid-template-columns:1fr;gap:10px}#decision .financial-heading-controls{flex-wrap:wrap}#decision .financial-heading-controls .field{flex:1 1 135px;min-width:130px}#decision .scenario-location{order:unset;flex:none;max-width:none;margin:0}#decision-results .scenario-context-bar{margin:0 0 17px}#decision .financial-assumptions-heading{flex-direction:column;gap:11px}}
 @media print {#decision .financial-assumptions{display:block!important}#decision-results .scenario-context-bar{margin-top:0}}
+
+
+/* Blue Lagoon UI v3.3 — equal-height control labels and aligned selects. */
+#decision .financial-heading-controls {
+  align-items: flex-start;
+}
+#decision .financial-heading-controls .field {
+  flex: 0 0 175px;
+  width: 175px;
+  min-width: 0;
+  max-width: none;
+}
+#decision .financial-heading-controls .field label {
+  display: block;
+  line-height: 18px;
+  min-height: 18px;
+  white-space: nowrap;
+}
+#decision .financial-heading-controls .field select {
+  height: 42px;
+}
+@media (max-width: 740px) {
+  #decision .financial-heading-controls .field {
+    flex: 1 1 145px;
+    width: auto;
+    min-width: 145px;
+  }
+}
