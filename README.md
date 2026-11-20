@@ -2,6 +2,12 @@
 
 A public, static, English-language preview of HireOrGrow.
 
+### Blue Lagoon UX/UI integration (19 November 2026)
+
+This version incorporates the approved **Decision-first Dashboard** design with the Blue Lagoon palette (`#0C4255`, `#14849B`, `#169E8E`). The dashboard shows the three existing comparison charts ahead of secondary Financial Assumptions; use **Edit Financial Assumptions** to expand the editable fields. A third navigation tab, **Methodology & Guide**, provides an integrated usage guide and explanations of the real calculation/evidence rules. The change is a UI layer over v0.9.11: calculation formulas, `market.js`, market datasets, collectors and GitHub Actions are preserved.
+
+To preview locally, serve the repository root over HTTP (for example `python -m http.server 8000`) and open `http://localhost:8000`. The public salary data are shipped under `data/`; external FX may be unavailable offline. GitHub publishing is **not** performed by this ZIP. The design decisions and implementation status are recorded in [`docs/UX_UI_CONTEXT.md`](docs/UX_UI_CONTEXT.md).
+
 **Decision Comparison** shows three independent charts on one page: external vs internal hire (one-off cost), retain vs replace (full cost over its configured horizon), and hire vs promote vs reskill (incremental costs). Each chart has its own scale and highlights the lowest modeled amount, **not an HR recommendation**. Expand the corresponding editor to change assumptions. The selected position is shared with Salary Benchmarks.
 
 **Salary Benchmarks** contains 43 alphabetized IT positions and nine countries. Salary numbers are dated, attributed public reference snapshots for a broader range of roles in all nine supported countries, not automatically refreshed live quotes. Source restrictions for Georgia are respected; the blocked vacancy widget is hidden until a working permitted feed is available. Currency conversion requires Frankfurter FX service and preserves the original salary and pay basis.

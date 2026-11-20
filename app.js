@@ -365,17 +365,29 @@ function calculateTalent(){
  decisionModels.talent={key:'talent',title:'Hire, Promote, or Reskill',basis:`Incremental Cost · ${months}-Month Horizon`,note:impactEnabled?'Monthly business cost of time is included; feasibility assessed separately.':'Time to productivity is shown but not fully monetized; enter business impact per month to complete the trade-off.',options:rows.map(r=>({name:r.name,cost:r.total,available:r.rankable,unavailableReason:r.reason,detail:`${r.delay.toFixed(1)} months to full productivity`}))};renderDecisionOverview();
  talentReport='HireOrGrow — Internal Talent scenarios\n'+narrative+'\n'+rows.map(r=>r.rankable?`${r.name}: ${money(r.total)}; ${r.delay} months to full productivity; incremental payroll incl. backfill ${money(r.pay)}; direct costs ${money(r.other)}; estimated losses ${money(r.loss)}`:`${r.name}: ${r.reason}; excluded from comparison`).join('\n')+'\nFinance approval required. Not an automated HR decision.';
 }
+// Blue Lagoon UX: add a documentation tab and optional assumption disclosure.
+// This function only changes visible sections. Financial formulas stay untouched.
 function showTab(tab){
- const decision=tab==='decision';
- el('decision').classList.toggle('hide',!decision);
- el('market').classList.toggle('hide',decision);
- for(const id of ['decision','market']){
-  const btn=el('tab-'+id);const active=id===tab;
+ for(const id of ['decision','market','guide']){
+  el(id).classList.toggle('hide',id!==tab);
+  const btn=el('tab-'+id),active=id===tab;
   btn.classList.toggle('active',active);
   btn.setAttribute('aria-selected',String(active));
  }
 }
-for(const id of ['decision','market']) el('tab-'+id).addEventListener('click',()=>showTab(id));
+for(const id of ['decision','market','guide']) el('tab-'+id).addEventListener('click',()=>showTab(id));
+el('open-financial-assumptions').addEventListener('click',()=>{
+ const panel=el('financial-assumptions-panel');panel.open=true;
+ panel.scrollIntoView({behavior:'smooth',block:'start'});
+});
+document.querySelectorAll('[data-open-tab]').forEach(btn=>btn.addEventListener('click',()=>{
+ const tab=btn.dataset.openTab;
+ // Activate the real tab button so Salary Benchmarks also performs its normal lazy loading.
+ el('tab-'+tab)?.click();
+ const target=btn.dataset.scrollTarget;
+ if(target)requestAnimationFrame(()=>el(target)?.scrollIntoView({behavior:'smooth',block:'start'}));
+ else window.scrollTo({top:0,behavior:'smooth'});
+}));
 async function copy(text){
   try{
     if(navigator.clipboard && window.isSecureContext){await navigator.clipboard.writeText(text);alert('Report copied.');return;}

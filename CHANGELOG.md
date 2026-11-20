@@ -1,3 +1,12 @@
+## Blue Lagoon UX/UI integration on v0.9.11 · 19 November 2026
+
+- Applied the approved Decision-first Dashboard layout and Blue Lagoon color palette.
+- Put the three independent visual comparisons before Financial Assumptions; the original inputs remain accessible in a disclosure and from a prominent Edit button.
+- Added an integrated **Methodology & Guide** tab covering usage, model differences, salary evidence, candidate feasibility, rate history and safety caveats.
+- Simplified the demo/security warning into an expandable disclosure while retaining its wording and key limitations.
+- Updated browser tests to open the new assumptions disclosure and verify guide navigation.
+- No changes to calculation formulas, salary provider logic, datasets, update scripts, GitHub Actions or FX handling. No GitHub deployment is implied.
+
 ## v0.9.11 — Candidate feasibility and cost of time · 19 November 2026
 
 - Explicit candidate availability for Promotion and Reskilling (Yes / No / Not assessed).

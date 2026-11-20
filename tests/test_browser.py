@@ -49,6 +49,18 @@ def main():
    html=html.replace('<head>','<head><base href="https://hireorgrow.example/">')
    page.set_content(html,wait_until='domcontentloaded')
    assert '0.9.11' in page.title()
+   # The Blue Lagoon hero and HireOrGrow logo must stay together above navigation.
+   assert page.locator('header.site-hero .logo').inner_text().startswith('HireOrGrow')
+   assert page.locator('header.site-hero').evaluate('(el) => !!(el.compareDocumentPosition(document.querySelector(".product-nav")) & Node.DOCUMENT_POSITION_FOLLOWING)')
+   assert page.locator('#decision .compare-top').count()==0
+   assert page.locator('#tab-guide').count()==1
+   assert page.locator('#financial-assumptions-panel').evaluate('(e) => !e.open')
+   assert page.locator('#decision-chart').is_visible()
+   assert page.locator('#decision-chart .decision-chart-card').count()==3
+   # In the decision-first layout financial controls are intentionally below charts and collapsed.
+   assert page.locator('.decision-calculators-section').evaluate('(e) => e.compareDocumentPosition(document.querySelector(".financial-assumptions")) & Node.DOCUMENT_POSITION_FOLLOWING')
+   page.locator('#open-financial-assumptions').click()
+   assert page.locator('#financial-assumptions-panel').evaluate('(e) => e.open')
    # Do not silently assume a candidate exists: unassessed paths are excluded.
    assert page.locator('#fin-promotion-available').input_value()=='unknown'
    assert page.locator('#fin-reskill-available').input_value()=='unknown'
@@ -68,8 +80,8 @@ def main():
    assert page.locator('.chart-disclaimer').count()==1
    assert page.locator('.decision-calculators-section > .chart-disclaimer').count()==1
    assert page.locator('.financial-assumptions .chart-disclaimer').count()==0
-   assert page.locator('.chart-disclaimer').evaluate('(e) => !!(e.compareDocumentPosition(document.querySelector(".financial-assumptions")) & Node.DOCUMENT_POSITION_PRECEDING)')
-   assert page.locator('.comparison-lead .chart-disclaimer').evaluate('(e) => e.compareDocumentPosition(document.querySelector("#decision-chart")) & Node.DOCUMENT_POSITION_FOLLOWING')
+   assert page.locator('.chart-disclaimer').evaluate('(e) => !!(e.compareDocumentPosition(document.querySelector(".financial-assumptions")) & Node.DOCUMENT_POSITION_FOLLOWING)')
+   assert page.locator('.comparison-lead .chart-disclaimer').evaluate('(e) => e.compareDocumentPosition(document.querySelector("#decision-chart")) & Node.DOCUMENT_POSITION_PRECEDING')
    assert 'Sets the country for salary evidence' in page.locator('.location-hint').text_content()
    assert page.locator('#decision-role option').count()==43
    assert page.locator('#decision-role optgroup').count()==0
@@ -284,6 +296,13 @@ def main():
    assert page.locator('#m-compare-rows .market-mini-card').count()==1
    assert 'Georgia' not in page.locator('#m-compare-rows').inner_text()
    assert 'Tbilisi' not in page.locator('#m-auto-results').inner_text()
+   page.locator('#tab-guide').click()
+   assert page.locator('#guide').is_visible()
+   assert page.locator('#market').is_hidden()
+   assert page.locator('#guide-models').is_visible()
+   page.locator('[data-open-tab="decision"]').click()
+   assert page.locator('#decision').is_visible()
+   assert page.locator('#tab-guide').get_attribute('aria-selected')=='false'
    page.locator('#tab-decision').click()
    assert page.locator('#decision-role').input_value()=='devops-engineer'
    page.locator('#currency').select_option('EUR')
